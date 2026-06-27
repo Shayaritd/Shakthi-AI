@@ -1,0 +1,7 @@
+{
+<<<<<<< HEAD
+  "template": "node"
+=======
+  "template": "bolt-vite-react-ts"
+>>>>>>> 306e27387bb0484c03a217307b5445c23e10e46b
+}
