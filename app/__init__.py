@@ -1,0 +1,1 @@
+"""SHAKTHI Backend Application"""
