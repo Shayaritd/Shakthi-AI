@@ -1,0 +1,212 @@
+export const COLORS = {
+  primary: {
+    50: '#E6F4F5',
+    100: '#CCE9EB',
+    200: '#99D3D7',
+    300: '#66BDC3',
+    400: '#33A7AF',
+    500: '#0F5C5F',
+    600: '#0C4A4C',
+    700: '#093839',
+    800: '#062527',
+    900: '#031314',
+  },
+  gold: {
+    50: '#FFF9E6',
+    100: '#FFF3CC',
+    200: '#FFE799',
+    300: '#FFDB66',
+    400: '#FFCF33',
+    500: '#F9A825',
+    600: '#C7881D',
+    700: '#956616',
+    800: '#634410',
+    900: '#322208',
+  },
+  alert: {
+    50: '#FCE4EC',
+    100: '#F8BBD9',
+    200: '#F48FB1',
+    300: '#F06292',
+    400: '#EC407A',
+    500: '#C62828',
+    600: '#9E2020',
+    700: '#751818',
+    800: '#4D1010',
+    900: '#260808',
+  },
+  success: {
+    50: '#E8F5E9',
+    100: '#C8E6C9',
+    200: '#A5D6A7',
+    300: '#81C784',
+    400: '#66BB6A',
+    500: '#2E7D32',
+    600: '#256429',
+    700: '#1C4B20',
+    800: '#133218',
+    900: '#091910',
+  },
+  warning: {
+    50: '#FFF8E1',
+    100: '#FFECB3',
+    200: '#FFE082',
+    300: '#FFD54F',
+    400: '#FFCA28',
+    500: '#F57C00',
+    600: '#C46300',
+    700: '#934A00',
+    800: '#623100',
+    900: '#311800',
+  },
+  neutral: {
+    50: '#FAFAFA',
+    100: '#F5F5F5',
+    200: '#EEEEEE',
+    300: '#E0E0E0',
+    400: '#BDBDBD',
+    500: '#9E9E9E',
+    600: '#757575',
+    700: '#616161',
+    800: '#424242',
+    900: '#212121',
+  },
+};
+
+export const SPORTS_LIST = [
+  'Athletics',
+  'Badminton',
+  'Basketball',
+  'Boxing',
+  'Cricket',
+  'Football',
+  'Gymnastics',
+  'Hockey',
+  'Judo',
+  'Kabaddi',
+  'Kho-Kho',
+  'Shooting',
+  'Swimming',
+  'Table Tennis',
+  'Tennis',
+  'Volleyball',
+  'Weightlifting',
+  'Wrestling',
+];
+
+export const INDIAN_STATES = [
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Delhi',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+];
+
+export const LANGUAGES = [
+  { code: 'en', name: 'English' },
+  { code: 'hi', name: 'Hindi' },
+  { code: 'ta', name: 'Tamil' },
+  { code: 'te', name: 'Telugu' },
+  { code: 'mr', name: 'Marathi' },
+  { code: 'bn', name: 'Bengali' },
+  { code: 'gu', name: 'Gujarati' },
+  { code: 'kn', name: 'Kannada' },
+  { code: 'ml', name: 'Malayalam' },
+  { code: 'pa', name: 'Punjabi' },
+  { code: 'or', name: 'Odia' },
+];
+
+export const ROLE_LABELS: Record<string, string> = {
+  ATHLETE: 'Athlete',
+  MENTOR: 'Mentor',
+  GUARDIAN: 'Parent/Guardian',
+  ADMIN: 'Administrator',
+  COLLEGE_REP: 'College Representative',
+  SPONSOR: 'Sponsor',
+};
+
+export const ATHLETE_LEVELS = [
+  { value: 'SCHOOL', label: 'School Level' },
+  { value: 'DISTRICT', label: 'District Level' },
+  { value: 'STATE', label: 'State Level' },
+  { value: 'NATIONAL', label: 'National Level' },
+  { value: 'INTERNATIONAL', label: 'International Level' },
+];
+
+export const MENTORSHIP_MODES = [
+  { value: 'ONLINE', label: 'Online Coaching', icon: 'Laptop' },
+  { value: 'OFFLINE', label: 'In-Person Training', icon: 'MapPin' },
+  { value: 'GROUP', label: 'Group Sessions', icon: 'Users' },
+  { value: 'CAREER_GUIDANCE', label: 'Career Guidance', icon: 'Compass' },
+  { value: 'TRIAL_PREP', label: 'Trial Preparation', icon: 'Target' },
+];
+
+export const REPORT_CATEGORIES = [
+  { value: 'HARASSMENT', label: 'Harassment', severity: 'URGENT' },
+  { value: 'INAPPROPRIATE_LANGUAGE', label: 'Inappropriate Language', severity: 'NORMAL' },
+  { value: 'FRAUD', label: 'Fraud/Misrepresentation', severity: 'URGENT' },
+  { value: 'UNSAFE_MEETING', label: 'Unsafe Meeting Conduct', severity: 'EMERGENCY' },
+  { value: 'PRESSURE', label: 'Excessive Pressure/Coercion', severity: 'NORMAL' },
+  { value: 'DISCRIMINATION', label: 'Discrimination', severity: 'URGENT' },
+  { value: 'MISUSE_CONTENT', label: 'Misuse of Content/Images', severity: 'URGENT' },
+  { value: 'SAFETY_CONCERN', label: 'General Safety Concern', severity: 'NORMAL' },
+  { value: 'OTHER', label: 'Other', severity: 'NORMAL' },
+];
+
+export const REPORT_SEVERITIES = [
+  { value: 'NORMAL', label: 'Normal Review', color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  { value: 'URGENT', label: 'Urgent', color: 'text-orange-600', bgColor: 'bg-orange-100' },
+  { value: 'EMERGENCY', label: 'Emergency', color: 'text-red-600', bgColor: 'bg-red-100' },
+];
+
+export const OPPORTUNITY_TYPES = [
+  { value: 'TOURNAMENT', label: 'Tournament', icon: 'Trophy' },
+  { value: 'TRIAL', label: 'Selection Trial', icon: 'ClipboardCheck' },
+  { value: 'CAMP', label: 'Training Camp', icon: 'Tent' },
+  { value: 'GOVERNMENT_SCHEME', label: 'Government Scheme', icon: 'Building' },
+  { value: 'ACADEMY', label: 'Academy Program', icon: 'GraduationCap' },
+  { value: 'SCHOLARSHIP', label: 'Scholarship', icon: 'Award' },
+];
+
+export const CONTENT_TYPES = [
+  { value: 'VIDEO', label: 'Video', icon: 'Play' },
+  { value: 'ARTICLE', label: 'Article', icon: 'FileText' },
+  { value: 'GUIDE', label: 'Guide', icon: 'Book' },
+  { value: 'EXERCISE', label: 'Exercise', icon: 'Dumbbell' },
+  { value: 'NUTRITION', label: 'Nutrition', icon: 'Apple' },
+  { value: 'MENTAL_HEALTH', label: 'Mental Health', icon: 'Brain' },
+];
+
+export const TRAINING_CATEGORIES = [
+  'Training Basics',
+  'Mental Health',
+  'Nutrition',
+  'Exercise',
+  'Recovery',
+  'Technique',
+  'Competition Prep',
+];
