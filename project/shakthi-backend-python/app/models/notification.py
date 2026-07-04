@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 from sqlalchemy import String, Text, DateTime, Boolean, Enum, ForeignKey, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
@@ -53,7 +53,7 @@ class Notification(Base):
     read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     action_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     action_text: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    meta: Mapped[Optional[dict]] = mapped_column("extra_data", JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

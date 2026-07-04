@@ -28,7 +28,9 @@ from app.schemas.ai import (
     ScholarshipFitRequest, ScholarshipFitResponse,
     MentorMatchRequest, MentorMatchResponse,
     CollegeFitRequest, CollegeFitResponse,
-    MessageRiskRequest, MessageRiskResponse
+    MessageRiskRequest, MessageRiskResponse,
+    AICitation, AIQueryRequest, AIQueryResponse,
+    DocumentIngestResponse, IngestStatusResponse
 )
 from app.schemas.common import (
     PaginationParams, PaginatedResponse, APIResponse,
@@ -58,6 +60,8 @@ __all__ = [
     "MentorMatchRequest", "MentorMatchResponse",
     "CollegeFitRequest", "CollegeFitResponse",
     "MessageRiskRequest", "MessageRiskResponse",
+    "AICitation", "AIQueryRequest", "AIQueryResponse",
+    "DocumentIngestResponse", "IngestStatusResponse",
     # Common
     "PaginationParams", "PaginatedResponse", "APIResponse",
     "ErrorResponse", "HealthResponse",

@@ -21,10 +21,8 @@ import RequestMentorshipPage from '@/pages/mentors/RequestMentorshipPage';
 import ScholarshipsPage from '@/pages/scholarships/ScholarshipsPage';
 import ScholarshipDetailPage from '@/pages/scholarships/ScholarshipDetailPage';
 import SavedScholarshipsPage from '@/pages/scholarships/SavedScholarshipsPage';
-import LiveScholarshipsPage from '@/pages/scholarships/LiveScholarshipsPage';
 import CollegesPage from '@/pages/colleges/CollegesPage';
 import CollegeDetailPage from '@/pages/colleges/CollegeDetailPage';
-import LiveCollegesPage from '@/pages/colleges/LiveCollegesPage';
 import CollegeComparePage from '@/pages/colleges/CollegeComparePage';
 import OpportunitiesPage from '@/pages/opportunities/OpportunitiesPage';
 import OpportunityDetailPage from '@/pages/opportunities/OpportunityDetailPage';
@@ -214,16 +212,6 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/scholarships/live"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <LiveScholarshipsPage />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
 
               <Route
                 path="/colleges"
@@ -241,16 +229,6 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <CollegeDetailPage />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/colleges/live"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <LiveCollegesPage />
                     </Layout>
                   </ProtectedRoute>
                 }

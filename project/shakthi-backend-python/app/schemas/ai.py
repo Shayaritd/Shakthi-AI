@@ -146,3 +146,36 @@ class TrainingRecommendationResponse(BaseModel):
     recommendations: List[Dict[str, Any]]
     total_recommendations: int
     source: str
+
+class AICitation(BaseModel):
+    """Citation metadata schema for RAG answers"""
+    document_title: str
+    document_id: str
+    chunk_id: str
+    page_number: Optional[int] = None
+    snippet: str
+
+class AIQueryRequest(BaseModel):
+    """Request schema for grounded RAG queries"""
+    question: str = Field(..., min_length=1, max_length=2000)
+    assistant_type: str = Field(..., description="colleges, scholarships, or safety")
+    filters: Optional[Dict[str, Any]] = None
+
+class AIQueryResponse(BaseModel):
+    """Response schema containing RAG answer and associated source citations"""
+    answer: str
+    citations: List[AICitation]
+    provider_used: str
+
+class DocumentIngestResponse(BaseModel):
+    """Response returned upon initiating a document upload ingestion job"""
+    document_id: str
+    status: str
+    collection_name: str
+
+class IngestStatusResponse(BaseModel):
+    """Response containing the current status of an ingestion processing job"""
+    document_id: str
+    status: str
+    total_chunks: int
+    error_message: Optional[str] = None

@@ -4,8 +4,8 @@ User notifications
 """
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any
-from sqlalchemy import String, DateTime, Boolean, Enum, func, ForeignKey, Text
+from typing import Optional
+from sqlalchemy import String, Text, DateTime, Boolean, Enum, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
@@ -53,7 +53,7 @@ class Notification(Base):
     read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     action_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     action_text: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    extra_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)  # ← CHANGED from metadata
+    meta: Mapped[Optional[dict]] = mapped_column("extra_data", JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -65,3 +65,7 @@ class Notification(Base):
 
     def __repr__(self) -> str:
         return f"<Notification {self.user_id}: {self.title}>"
+
+
+from sqlalchemy.dialects.postgresql import JSON
+from app.models.user import User

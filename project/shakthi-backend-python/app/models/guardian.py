@@ -5,7 +5,7 @@ Guardian/Parent profile for athlete oversight
 import uuid
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import String, DateTime, Enum, func
+from sqlalchemy import String, DateTime, Enum, func, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
@@ -66,8 +66,9 @@ class GuardianProfile(Base):
     user: Mapped["User"] = relationship("User", back_populates="guardian_profile", lazy="selectin")
     mentored_athletes: Mapped[List["MentorshipRequest"]] = relationship(
         "MentorshipRequest",
-        foreign_keys="MentorshipRequest.guardian_id",
-        back_populates="guardian",
+        primaryjoin="GuardianProfile.user_id == MentorshipRequest.guardian_id",
+        foreign_keys="[MentorshipRequest.guardian_id]",
+        viewonly=True,
         lazy="selectin"
     )
 

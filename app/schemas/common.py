@@ -1,79 +1,72 @@
 """
 Common Schemas
-Shared Pydantic models for API responses
+Shared schemas for pagination, responses, etc.
 """
-from typing import Generic, TypeVar, List, Optional
+from typing import Generic, TypeVar, Optional, List, Any, Dict
 from pydantic import BaseModel, Field
+from datetime import datetime
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class PaginationParams(BaseModel):
-    """Pagination parameters"""
-    page: int = Field(1, ge=1)
-    size: int = Field(20, ge=1, le=100)
+    """Pagination query parameters"""
+    page: int = Field(default=1, ge=1, description="Page number")
+    size: int = Field(default=20, ge=1, le=100, description="Items per page")
 
-    class Config:
-        from_attributes = True
+    @property
+    def offset(self) -> int:
+        return (self.page - 1) * self.size
 
 
 class PaginationMeta(BaseModel):
-    """Pagination metadata"""
+    """Pagination metadata for responses"""
     page: int
     size: int
     total: int
     pages: int
-    has_next: bool
-    has_prev: bool
-
-    class Config:
-        from_attributes = True
-
-
-class PaginatedResponse(BaseModel, Generic[T]):
-    """Paginated response wrapper"""
-    items: List[T]
-    meta: PaginationMeta
-
-    class Config:
-        from_attributes = True
 
 
 class APIResponse(BaseModel, Generic[T]):
     """Standard API response wrapper"""
     success: bool = True
-    message: Optional[str] = None
     data: Optional[T] = None
-    errors: Optional[List[dict]] = None
-
-    class Config:
-        from_attributes = True
-
-
-class MessageResponse(BaseModel):
-    """Simple message response"""
-    message: str
-    success: bool = True
-
-    class Config:
-        from_attributes = True
+    message: str = "Operation successful"
+    pagination: Optional[PaginationMeta] = None
+    errors: Optional[List[Dict[str, str]]] = None
 
 
 class ErrorResponse(BaseModel):
-    """Error response"""
-    detail: str
-    status_code: int
-    errors: Optional[List[dict]] = None
-
-    class Config:
-        from_attributes = True
+    """Error response schema"""
+    success: bool = False
+    data: Optional[Any] = None
+    message: str
+    errors: Optional[List[Dict[str, str]]] = None
+    error_code: Optional[str] = None
 
 
 class HealthResponse(BaseModel):
     """Health check response"""
-    status: str = "ok"
-    version: str = "1.0.0"
-    environment: str = "development"
+    status: str = "healthy"
+    version: str
+    environment: str
+    database: str = "connected"
+    redis: str = "connected"
+    timestamp: datetime
 
-    class Config:
-        from_attributes = True
+
+class MessageResponse(BaseModel):
+    """Simple message response"""
+    success: bool = True
+    message: str
+
+
+class IDResponse(BaseModel):
+    """Response with just an ID"""
+    id: str
+    success: bool = True
+
+
+class PaginatedResponse(APIResponse[List[Any]]):
+    """Generic paginated response wrapper"""
+    pass

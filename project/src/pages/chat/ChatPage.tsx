@@ -15,7 +15,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 
@@ -146,9 +146,10 @@ export default function ChatPage() {
               })}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-              <p className="text-sm">No conversations yet</p>
+            <div className="text-center py-12 px-4 text-gray-500">
+              <MessageSquare className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+              <p className="text-sm font-semibold">No active chats</p>
+              <p className="text-xs text-gray-400 mt-1">Connect with a mentor first.</p>
             </div>
           )}
         </ScrollArea>
@@ -239,10 +240,29 @@ export default function ChatPage() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            <div className="text-center">
-              <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg">Select a conversation to start chatting</p>
+          <div className="flex-1 flex items-center justify-center text-gray-500 p-8">
+            <div className="text-center max-w-sm space-y-4">
+              <div className="w-16 h-16 bg-teal-50 rounded-full flex items-center justify-center mx-auto text-teal-600">
+                <MessageSquare className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-gray-900 text-lg">No Mentorship Conversations</h3>
+                <p className="text-sm text-gray-500">
+                  You haven't requested mentorship or started messaging any verified coaches yet.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 pt-2">
+                <Button className="bg-teal-600 hover:bg-teal-700 w-full" asChild>
+                  <Link to="/mentors">
+                    Browse Verified Mentors
+                  </Link>
+                </Button>
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to="/safety">
+                    Safety & Code of Conduct
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         )}

@@ -57,7 +57,7 @@ class Scholarship(Base):
         nullable=False
     )
 
-    # ==================== RELATIONSHIPS ====================
+    # Relationships
     saved_by: Mapped[List["SavedScholarship"]] = relationship(
         "SavedScholarship",
         back_populates="scholarship",
@@ -108,19 +108,12 @@ class SavedScholarship(Base):
         nullable=False
     )
 
-    # ==================== RELATIONSHIPS ====================
-    athlete_user: Mapped["User"] = relationship(
-        "User",
-        foreign_keys=[user_id],
-        back_populates="saved_scholarships",
-        lazy="selectin"
-    )
-    
-    scholarship: Mapped["Scholarship"] = relationship(
-        "Scholarship",
-        back_populates="saved_by",
-        lazy="selectin"
-    )
+    # Relationships
+    athlete: Mapped["User"] = relationship("User", lazy="selectin")
+    scholarship: Mapped["Scholarship"] = relationship("Scholarship", back_populates="saved_by", lazy="selectin")
 
     def __repr__(self) -> str:
         return f"<SavedScholarship {self.user_id} -> {self.scholarship_id}>"
+
+
+from app.models.user import User

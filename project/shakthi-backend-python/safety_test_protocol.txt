@@ -1,0 +1,4 @@
+SHAKTHI Safety Protocol Document 2026.
+Platform safety rules require all mentors to meet athletes only in public, designated sporting venues.
+If an athlete feels uncomfortable, they must immediately report the issue using the red Shield button or call the direct support hotline at +91-98765-43210.
+Platform admins will review flagged messages within 2 hours. (Document Reference ID: SAF-2026-V1, Page 1)

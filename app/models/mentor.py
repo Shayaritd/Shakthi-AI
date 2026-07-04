@@ -5,13 +5,9 @@ Extended profile for mentors with verification and trust score
 import uuid
 from datetime import datetime
 from typing import Optional, Dict, Any, List
-
-from sqlalchemy import (
-    String, Integer, Float, Text, DateTime, Boolean, Enum, func,
-    ForeignKey
-)
+from sqlalchemy import String, Integer, Float, Text, DateTime, Boolean, Enum, func, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, JSON
-from sqlalchemy.orm import Mapped, mapped_column, relationship, foreign
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -56,35 +52,35 @@ class MentorProfile(Base):
         nullable=False
     )
 
-    # ==================== RELATIONSHIPS ====================
+    # Relationships
     user: Mapped["User"] = relationship("User", back_populates="mentor_profile", lazy="selectin")
-    
     mentorship_requests: Mapped[List["MentorshipRequest"]] = relationship(
         "MentorshipRequest",
-        primaryjoin="MentorProfile.user_id == foreign(MentorshipRequest.mentor_id)",
-        lazy="selectin",
-        viewonly=True
+        primaryjoin="MentorProfile.user_id == MentorshipRequest.mentor_id",
+        foreign_keys="[MentorshipRequest.mentor_id]",
+        viewonly=True,
+        lazy="selectin"
     )
-    
     reviews: Mapped[List["MentorReview"]] = relationship(
         "MentorReview",
-        primaryjoin="MentorProfile.user_id == foreign(MentorReview.mentor_id)",
-        lazy="selectin",
-        viewonly=True
+        primaryjoin="MentorProfile.user_id == MentorReview.mentor_id",
+        foreign_keys="[MentorReview.mentor_id]",
+        viewonly=True,
+        lazy="selectin"
     )
-    
     chat_threads: Mapped[List["ChatThread"]] = relationship(
         "ChatThread",
-        primaryjoin="MentorProfile.user_id == foreign(ChatThread.mentor_id)",
-        lazy="selectin",
-        viewonly=True
+        primaryjoin="MentorProfile.user_id == ChatThread.mentor_id",
+        foreign_keys="[ChatThread.mentor_id]",
+        viewonly=True,
+        lazy="selectin"
     )
-    
     created_resources: Mapped[List["TrainingResource"]] = relationship(
         "TrainingResource",
-        primaryjoin="MentorProfile.user_id == foreign(TrainingResource.created_by)",
-        lazy="selectin",
-        viewonly=True
+        primaryjoin="MentorProfile.user_id == TrainingResource.created_by",
+        foreign_keys="[TrainingResource.created_by]",
+        viewonly=True,
+        lazy="selectin"
     )
 
     def __repr__(self) -> str:
@@ -95,3 +91,12 @@ class MentorProfile(Base):
         current_total = self.average_rating * self.total_reviews
         self.total_reviews += 1
         self.average_rating = (current_total + new_rating) / self.total_reviews
+
+
+from sqlalchemy import ForeignKey
+from typing import List
+from app.models.user import User
+from app.models.mentorship_request import MentorshipRequest
+from app.models.review import MentorReview
+from app.models.chat import ChatThread
+from app.models.training_resource import TrainingResource

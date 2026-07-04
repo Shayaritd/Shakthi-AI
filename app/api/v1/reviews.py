@@ -12,7 +12,7 @@ from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.core.dependencies import get_current_user, require_athlete, require_admin
 from app.models.user import User
-from app.models.review import MentorReview  # ← Fixed: changed from mentor_review to review
+from app.models.review import MentorReview
 from app.models.mentorship_request import MentorshipRequest, RequestStatus
 from app.schemas.review import (
     MentorReviewCreate, MentorReviewUpdate, MentorReviewResponse, MentorReviewFilter
@@ -53,14 +53,6 @@ async def get_mentor_reviews(
     result = await db.execute(query)
     reviews = result.scalars().all()
 
-    # Calculate average rating for mentor
-    avg_query = select(func.avg(MentorReview.overall_rating)).where(
-        MentorReview.mentor_id == mentor_id,
-        MentorReview.visible == True
-    )
-    avg_result = await db.execute(avg_query)
-    avg_rating = avg_result.scalar() or 0.0
-
     return APIResponse(
         success=True,
         message="Reviews retrieved",
@@ -70,8 +62,7 @@ async def get_mentor_reviews(
             size=size,
             total=total,
             pages=(total + size - 1) // size
-        ),
-        extra={"average_rating": round(float(avg_rating), 2), "total_reviews": total}
+        )
     )
 
 
@@ -149,7 +140,7 @@ async def create_review(
 
     return APIResponse(
         success=True,
-        message="Review submitted successfully",
+        message="Review submitted",
         data=MentorReviewResponse.model_validate(review)
     )
 
@@ -285,5 +276,5 @@ async def delete_review(
 
     return APIResponse(
         success=True,
-        message="Review deleted successfully"
+        message="Review deleted"
     )

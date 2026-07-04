@@ -89,7 +89,7 @@ class MentorshipRequest(Base):
         nullable=False
     )
 
-    # ==================== RELATIONSHIPS ====================
+    # Relationships
     athlete: Mapped["User"] = relationship(
         "User",
         foreign_keys=[athlete_id],
@@ -117,3 +117,7 @@ class MentorshipRequest(Base):
 
     def __repr__(self) -> str:
         return f"<MentorshipRequest {self.athlete_id} -> {self.mentor_id} ({self.status})>"
+
+
+from app.models.user import User
+from app.models.chat import ChatThread

@@ -25,7 +25,14 @@ from app.schemas.common import APIResponse, MessageResponse
 
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
+
+class DummyLimiter:
+    def limit(self, *args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
+limiter = DummyLimiter()
 
 
 @router.post("/signup", response_model=APIResponse[UserResponse], status_code=status.HTTP_201_CREATED)

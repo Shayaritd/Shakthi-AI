@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     GROQ_API_KEY: Optional[str] = None
     PRIMARY_AI_PROVIDER: str = "gemini"
+    GEMINI_MODEL: str = "gemini-1.5-flash"
+
+    # Storage Abstraction
+    STORAGE_DIR: str = "uploads"
+    AZURE_STORAGE_CONNECTION_STRING: Optional[str] = None
+    AZURE_STORAGE_CONTAINER: Optional[str] = None
 
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000"
@@ -85,12 +91,7 @@ class Settings(BaseSettings):
     # External
     FRONTEND_URL: str = "http://localhost:3000"
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v):
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
-        return v
+
 
     @property
     def cors_origins_list(self) -> List[str]:
@@ -113,6 +114,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
+        extra = "ignore"
 
 
 @lru_cache()

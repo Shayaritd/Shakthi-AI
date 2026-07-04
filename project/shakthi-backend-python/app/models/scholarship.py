@@ -5,7 +5,7 @@ Scholarship opportunities for athletes
 import uuid
 from datetime import datetime, date
 from typing import Optional, Dict, Any, List
-from sqlalchemy import String, Text, Date, DateTime, Boolean, Enum, func
+from sqlalchemy import String, Text, Date, DateTime, Boolean, Enum, func, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
@@ -116,5 +116,4 @@ class SavedScholarship(Base):
         return f"<SavedScholarship {self.user_id} -> {self.scholarship_id}>"
 
 
-from sqlalchemy import ForeignKey
 from app.models.user import User

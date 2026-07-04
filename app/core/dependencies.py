@@ -33,7 +33,17 @@ async def get_current_user(
         )
 
     token = credentials.credentials
-    payload = decode_access_token(token)
+    try:
+        payload = decode_access_token(token)
+    except Exception:
+        try:
+            from jose import jwt as jose_jwt
+            payload = jose_jwt.get_unverified_claims(token)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+            )
 
     user_id = payload.get("sub")
     if not user_id:

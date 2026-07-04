@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Optional, List
 from sqlalchemy import String, DateTime, Enum, func, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship, foreign
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
 from app.database import Base
@@ -43,12 +43,6 @@ class GuardianProfile(Base):
         nullable=False,
         index=True
     )
-    athlete_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("athlete_profiles.user_id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
-    )
     relation: Mapped[GuardianRelation] = mapped_column(
         Enum(GuardianRelation),
         nullable=False
@@ -68,22 +62,20 @@ class GuardianProfile(Base):
         nullable=False
     )
 
-    # ==================== RELATIONSHIPS ====================
+    # Relationships
     user: Mapped["User"] = relationship("User", back_populates="guardian_profile", lazy="selectin")
-    
-    athlete: Mapped["AthleteProfile"] = relationship(
-        "AthleteProfile",
-        foreign_keys=[athlete_id],
-        back_populates="guardian_links",
-        lazy="selectin"
-    )
-    
     mentored_athletes: Mapped[List["MentorshipRequest"]] = relationship(
         "MentorshipRequest",
-        primaryjoin="GuardianProfile.user_id == foreign(MentorshipRequest.guardian_id)",
-        lazy="selectin",
-        viewonly=True
+        primaryjoin="GuardianProfile.user_id == MentorshipRequest.guardian_id",
+        foreign_keys="[MentorshipRequest.guardian_id]",
+        viewonly=True,
+        lazy="selectin"
     )
 
     def __repr__(self) -> str:
         return f"<GuardianProfile {self.user_id} - {self.relation}>"
+
+
+from sqlalchemy import ForeignKey
+from app.models.user import User
+from app.models.mentorship_request import MentorshipRequest

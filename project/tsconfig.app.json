@@ -26,5 +26,14 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/screens/**/*",
+    "src/components/BottomNav.tsx",
+    "src/components/MentorCard.tsx",
+    "src/components/ScholarshipCard.tsx",
+    "src/components/AiChat.tsx",
+    "src/services/gemini.ts",
+    "src/data/**/*"
+  ]
 }

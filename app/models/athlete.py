@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List, TYPE_CHECKING
 from sqlalchemy import String, Integer, Text, DateTime, Enum, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID, JSON
-from sqlalchemy.orm import Mapped, mapped_column, relationship, foreign
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
 from app.database import Base
@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from app.models.mentorship_request import MentorshipRequest
     from app.models.scholarship import SavedScholarship
     from app.models.chat import ChatThread
-    from app.models.guardian import GuardianProfile
 
 
 class AchievementLevel(str, enum.Enum):
@@ -75,39 +74,28 @@ class AthleteProfile(Base):
         nullable=False
     )
 
-    # ==================== RELATIONSHIPS ====================
+    # Relationships
     user: Mapped["User"] = relationship("User", back_populates="athlete_profile", lazy="selectin")
-    
-    guardian_links: Mapped[List["GuardianProfile"]] = relationship(
-        "GuardianProfile",
-        primaryjoin="AthleteProfile.user_id == foreign(GuardianProfile.athlete_id)",
-        lazy="selectin",
-        cascade="all, delete-orphan",
-        viewonly=True
-    )
-    
     mentorship_requests: Mapped[List["MentorshipRequest"]] = relationship(
         "MentorshipRequest",
-        primaryjoin="AthleteProfile.user_id == foreign(MentorshipRequest.athlete_id)",
-        lazy="selectin",
-        cascade="all, delete-orphan",
-        viewonly=True
+        primaryjoin="AthleteProfile.user_id == MentorshipRequest.athlete_id",
+        foreign_keys="[MentorshipRequest.athlete_id]",
+        viewonly=True,
+        lazy="selectin"
     )
-    
     saved_scholarships: Mapped[List["SavedScholarship"]] = relationship(
         "SavedScholarship",
-        primaryjoin="AthleteProfile.user_id == foreign(SavedScholarship.user_id)",
-        lazy="selectin",
-        cascade="all, delete-orphan",
-        viewonly=True
+        primaryjoin="AthleteProfile.user_id == SavedScholarship.user_id",
+        foreign_keys="[SavedScholarship.user_id]",
+        viewonly=True,
+        lazy="selectin"
     )
-    
     chat_threads: Mapped[List["ChatThread"]] = relationship(
         "ChatThread",
-        primaryjoin="AthleteProfile.user_id == foreign(ChatThread.athlete_id)",
-        lazy="selectin",
-        cascade="all, delete-orphan",
-        viewonly=True
+        primaryjoin="AthleteProfile.user_id == ChatThread.athlete_id",
+        foreign_keys="[ChatThread.athlete_id]",
+        viewonly=True,
+        lazy="selectin"
     )
 
     def __repr__(self) -> str:

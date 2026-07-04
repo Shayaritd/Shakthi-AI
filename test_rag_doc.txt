@@ -1,0 +1,5 @@
+﻿This is a test document for the SHAKTHI RAG pipeline.
+It contains information about athletic scholarships for female athletes in India.
+Eligibility: Minimum 3.0 GPA, participation in state-level competitions.
+Application deadline: March 31st, 2026.
+Contact: scholarships@shakthi.org

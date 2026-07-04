@@ -3,7 +3,7 @@ Safety Schemas
 Request/response schemas for safety reports
 """
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from enum import Enum
 

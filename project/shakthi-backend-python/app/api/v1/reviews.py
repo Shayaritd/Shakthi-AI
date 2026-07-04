@@ -12,7 +12,7 @@ from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.core.dependencies import get_current_user, require_athlete, require_admin
 from app.models.user import User
-from app.models.mentor_review import MentorReview
+from app.models.review import MentorReview
 from app.models.mentorship_request import MentorshipRequest, RequestStatus
 from app.schemas.review import (
     MentorReviewCreate, MentorReviewUpdate, MentorReviewResponse, MentorReviewFilter

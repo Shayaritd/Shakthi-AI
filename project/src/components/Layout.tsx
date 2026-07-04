@@ -47,15 +47,14 @@ const athleteNavItems = [
   { label: 'Dashboard', icon: Home, path: '/dashboard/athlete' },
   { label: 'Find Mentors', icon: Users, path: '/mentors' },
   { label: 'Scholarships', icon: Award, path: '/scholarships' },
-  { label: 'Live Scholarships', icon: Sparkles, path: '/scholarships/live' },
   { label: 'Colleges', icon: GraduationCap, path: '/colleges' },
-  { label: 'Live Colleges', icon: Sparkles, path: '/colleges/live' },
   { label: 'Opportunities', icon: Calendar, path: '/opportunities' },
   { label: 'Training', icon: BookOpen, path: '/training' },
   { label: 'Safety', icon: Shield, path: '/safety' },
   { label: 'Chat', icon: MessageSquare, path: '/chat' },
   { label: 'Success Stories', icon: Trophy, path: '/stories' },
 ];
+
 
 const mentorNavItems = [
   { label: 'Dashboard', icon: Home, path: '/dashboard/mentor' },

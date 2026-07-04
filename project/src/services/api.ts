@@ -372,7 +372,7 @@ export async function getScholarships(filters?: {
 }): Promise<Scholarship[]> {
   let scholarships: Scholarship[] = [];
   try {
-    let query = supabase.from('scholarships').select('*').eq('is_active', true);
+    let query = supabase.from('scholarships').select('*');
 
     if (filters?.girlsOnly) {
       query = query.eq('girls_only', true);
@@ -709,7 +709,7 @@ export async function getColleges(filters?: {
 }): Promise<College[]> {
   let colleges: College[] = [];
   try {
-    let query = supabase.from('colleges').select('*').eq('is_active', true);
+    let query = supabase.from('colleges').select('*');
 
     if (filters?.sportsQuota) {
       query = query.eq('sports_quota', true);
@@ -769,7 +769,7 @@ export async function getOpportunities(filters?: {
 }): Promise<Opportunity[]> {
   let opportunities: Opportunity[] = [];
   try {
-    let query = supabase.from('opportunities').select('*').eq('is_active', true);
+    let query = supabase.from('opportunities').select('*');
 
     if (filters?.type) {
       query = query.eq('type', filters.type);
@@ -1283,7 +1283,7 @@ export async function getAdminStats(): Promise<{
         .from('safety_reports')
         .select('*', { count: 'exact', head: true })
         .in('status', ['SUBMITTED', 'UNDER_REVIEW']),
-      supabase.from('scholarships').select('*', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('scholarships').select('*', { count: 'exact', head: true }),
     ]
   );
 

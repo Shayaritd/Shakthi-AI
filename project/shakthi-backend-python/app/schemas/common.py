@@ -65,3 +65,8 @@ class IDResponse(BaseModel):
     """Response with just an ID"""
     id: str
     success: bool = True
+
+
+class PaginatedResponse(APIResponse[List[Any]]):
+    """Generic paginated response wrapper"""
+    pass

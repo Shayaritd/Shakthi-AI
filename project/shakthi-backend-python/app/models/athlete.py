@@ -78,23 +78,24 @@ class AthleteProfile(Base):
     user: Mapped["User"] = relationship("User", back_populates="athlete_profile", lazy="selectin")
     mentorship_requests: Mapped[List["MentorshipRequest"]] = relationship(
         "MentorshipRequest",
-        foreign_keys="MentorshipRequest.athlete_id",
-        back_populates="athlete",
-        lazy="selectin",
-        cascade="all, delete-orphan"
+        primaryjoin="AthleteProfile.user_id == MentorshipRequest.athlete_id",
+        foreign_keys="[MentorshipRequest.athlete_id]",
+        viewonly=True,
+        lazy="selectin"
     )
     saved_scholarships: Mapped[List["SavedScholarship"]] = relationship(
         "SavedScholarship",
-        back_populates="athlete_user",
-        lazy="selectin",
-        cascade="all, delete-orphan"
+        primaryjoin="AthleteProfile.user_id == SavedScholarship.user_id",
+        foreign_keys="[SavedScholarship.user_id]",
+        viewonly=True,
+        lazy="selectin"
     )
     chat_threads: Mapped[List["ChatThread"]] = relationship(
         "ChatThread",
-        foreign_keys="ChatThread.athlete_id",
-        back_populates="athlete",
-        lazy="selectin",
-        cascade="all, delete-orphan"
+        primaryjoin="AthleteProfile.user_id == ChatThread.athlete_id",
+        foreign_keys="[ChatThread.athlete_id]",
+        viewonly=True,
+        lazy="selectin"
     )
 
     def __repr__(self) -> str:

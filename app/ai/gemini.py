@@ -1,153 +1,88 @@
-"""
-Gemini AI Service
-Google Gemini integration for AI-powered features
-"""
 import json
 from typing import Optional, List, Dict, Any
 from loguru import logger
+import google.generativeai as genai
 
 from app.config import settings
+from app.ai.base import AIProvider
 from app.ai.prompts import (
     CHAT_PROMPT, ATHLETE_SUMMARY_PROMPT, SCHOLARSHIP_FIT_PROMPT,
     MENTOR_MATCH_PROMPT, COLLEGE_FIT_PROMPT, SAFETY_GUIDANCE_PROMPT,
     MESSAGE_RISK_PROMPT
 )
 
+class GeminiProvider(AIProvider):
+    """Google Gemini AI implementation of the AIProvider base interface"""
+    
+    def __init__(self, api_key: str = None):
+        self.api_key = api_key or settings.GEMINI_API_KEY
+        self.model_name = settings.GEMINI_MODEL or 'gemini-1.5-flash'
+        self._model = None
+        
+        if self.api_key:
+            try:
+                genai.configure(api_key=self.api_key)
+                self._model = genai.GenerativeModel(self.model_name)
+            except Exception as e:
+                logger.error(f"Error configuring Google Generative AI: {e}")
+
+    async def generate_response(self, prompt: str, system_instruction: str = None) -> str:
+        if not self._model:
+            raise RuntimeError("GeminiProvider: genai model is not configured (missing API Key)")
+        
+        # System instructions parameter name depends on the SDK version.
+        # For older SDK version (0.3.x/0.4.x), system instructions are passed in configuration or on model creation.
+        # To be safe and compatible with google-generativeai==0.3.2, we format system_instruction into the prompt
+        # if the system_instruction argument is not natively supported in GenerativeModel init.
+        
+        full_prompt = prompt
+        if system_instruction:
+            full_prompt = f"System Instruction: {system_instruction}\n\nUser Question/Prompt: {prompt}"
+
+        # Run synchronously via standard call or async loop if supported
+        # Note: older SDKs do not have generate_content_async, so we call generate_content
+        # in an executor or call it directly. Direct synchronous call is fine inside FastAPI's async def
+        # but to keep it non-blocking, we run it or call it. We will use generate_content.
+        try:
+            response = self._model.generate_content(full_prompt)
+            return response.text
+        except Exception as e:
+            logger.error(f"Gemini generation call failed: {e}")
+            raise e
+
+    async def get_embeddings(self, text: str) -> List[float]:
+        if not self.api_key:
+            raise RuntimeError("GeminiProvider: api key is missing")
+        try:
+            # text-embedding-004 is standard for Gemini embeddings
+            result = genai.embed_content(
+                model="models/text-embedding-004",
+                content=text,
+                task_type="retrieval_document"
+            )
+            return result['embedding']
+        except Exception as e:
+            logger.error(f"Gemini embedding call failed: {e}")
+            raise e
+
 
 class GeminiService:
-    """Google Gemini AI service with fallback support"""
+    """
+    Facade/Service wrapper preserving existing codebase interface compatibility.
+    Updated to use AIProviderRouter under the hood for failover robustness.
+    """
 
     def __init__(self):
-        self.gemini_api_key = settings.GEMINI_API_KEY
-        self.openai_api_key = settings.OPENAI_API_KEY
-        self.groq_api_key = settings.GROQ_API_KEY
-        self.primary_provider = settings.PRIMARY_AI_PROVIDER
-        self._gemini_model = None
-        self._openai_client = None
-        self._groq_client = None
+        from app.ai.router import AIProviderRouter
+        from app.ai.mock import MockProvider
+        
+        primary = GeminiProvider(api_key=settings.GEMINI_API_KEY)
+        fallback = MockProvider()
+        self.router = AIProviderRouter(primary=primary, fallback=fallback)
+        self.primary_provider = "gemini"
 
-    @property
-    def gemini_model(self):
-        """Lazy load Gemini model"""
-        if self._gemini_model is None and self.gemini_api_key:
-            try:
-                import google.generativeai as genai
-                genai.configure(api_key=self.gemini_api_key)
-                self._gemini_model = genai.GenerativeModel('gemini-2.0-flash')
-            except ImportError:
-                logger.warning("Google Generative AI not installed")
-        return self._gemini_model
-
-    @property
-    def openai_client(self):
-        """Lazy load OpenAI client"""
-        if self._openai_client is None and self.openai_api_key:
-            try:
-                from openai import AsyncOpenAI
-                self._openai_client = AsyncOpenAI(api_key=self.openai_api_key)
-            except ImportError:
-                logger.warning("OpenAI not installed")
-        return self._openai_client
-
-    @property
-    def groq_client(self):
-        """Lazy load Groq client"""
-        if self._groq_client is None and self.groq_api_key:
-            try:
-                from groq import AsyncGroq
-                self._groq_client = AsyncGroq(api_key=self.groq_api_key)
-            except ImportError:
-                logger.warning("Groq not installed")
-        return self._groq_client
-
-    async def generate(self, prompt: str, provider: str = None) -> str:
-        """Generate response using specified provider with fallback"""
-        provider = provider or self.primary_provider
-
-        # Try primary provider
-        if provider == "gemini":
-            response = await self._try_gemini(prompt)
-            if response:
-                return response
-
-        if provider in ["gemini", "openai"]:
-            response = await self._try_openai(prompt)
-            if response:
-                return response
-
-        if provider in ["gemini", "openai", "groq"]:
-            response = await self._try_groq(prompt)
-            if response:
-                return response
-
-        # All failed, return fallback
-        return self._fallback_response(prompt)
-
-    async def _try_gemini(self, prompt: str) -> Optional[str]:
-        """Try Gemini API"""
-        try:
-            if self.gemini_model:
-                response = await self.gemini_model.generate_content_async(prompt)
-                return response.text
-        except Exception as e:
-            logger.warning(f"Gemini failed: {e}")
-        return None
-
-    async def _try_openai(self, prompt: str) -> Optional[str]:
-        """Try OpenAI API"""
-        try:
-            if self.openai_client:
-                response = await self.openai_client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=1000
-                )
-                return response.choices[0].message.content
-        except Exception as e:
-            logger.warning(f"OpenAI failed: {e}")
-        return None
-
-    async def _try_groq(self, prompt: str) -> Optional[str]:
-        """Try Groq API"""
-        try:
-            if self.groq_client:
-                response = await self.groq_client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=1000
-                )
-                return response.choices[0].message.content
-        except Exception as e:
-            logger.warning(f"Groq failed: {e}")
-        return None
-
-    def _fallback_response(self, prompt: str) -> str:
-        """Generate fallback response when all AI services fail"""
-        # Simple rule-based fallbacks
-        lower_prompt = prompt.lower()
-
-        if "scholarship" in lower_prompt:
-            return json.dumps({
-                "summary": "Scholarship information requires AI analysis.",
-                "recommendation": "Please try again later or browse available scholarships manually."
-            })
-
-        if "mentor" in lower_prompt:
-            return json.dumps({
-                "matches": [],
-                "explanation": "Mentor matching temporarily unavailable. Please browse mentors directly."
-            })
-
-        if "safety" in lower_prompt:
-            return json.dumps({
-                "guidance": "For safety concerns, please use the report feature immediately.",
-                "actions": ["Report the incident", "Contact support", "Document evidence"]
-            })
-
-        return json.dumps({
-            "response": "AI service temporarily unavailable. Please try again later.",
-            "fallback": True
-        })
+    async def generate(self, prompt: str, system_instruction: str = None) -> str:
+        return await self.router.generate(prompt, system_instruction)
 
     async def chat(
         self,
@@ -189,7 +124,6 @@ class GeminiService:
         response = await self.generate(prompt)
 
         try:
-            # Try to parse as JSON
             return json.loads(response)
         except:
             return {
@@ -247,7 +181,7 @@ class GeminiService:
                 "level": str(athlete_data.level),
                 "goals": athlete_data.goals
             }),
-            mentor_ids=json.dumps(mentor_ids[:10]),  # Limit to 10 for prompt
+            mentor_ids=json.dumps(mentor_ids[:10]),
             top_n=top_n
         )
 
@@ -257,7 +191,6 @@ class GeminiService:
             matches = json.loads(response)
             return matches if isinstance(matches, list) else []
         except:
-            # Return placeholder matches
             return [{"mentor_id": mid, "score": 70, "explanation": "Match pending"} for mid in mentor_ids[:top_n]]
 
     async def college_fit(
@@ -348,7 +281,6 @@ class GeminiService:
                 "reasoning": result.get("reasoning")
             }
         except:
-            # Default to safe when parsing fails
             return {
                 "risk_score": 0,
                 "risk_level": "LOW",

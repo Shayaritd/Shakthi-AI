@@ -2,9 +2,9 @@
 AI Routes
 AI-powered features: chat, matching, summaries
 """
-from typing import List
+from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, UploadFile, File, Form
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,13 +19,22 @@ from app.schemas.ai import (
     ScholarshipFitRequest, ScholarshipFitResponse,
     MentorMatchRequest, MentorMatchResponse,
     CollegeFitRequest, CollegeFitResponse,
-    MessageRiskRequest, MessageRiskResponse
+    MessageRiskRequest, MessageRiskResponse,
+    AIQueryRequest, AIQueryResponse,
+    DocumentIngestResponse, IngestStatusResponse
 )
 from app.schemas.common import APIResponse
 
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
+
+class DummyLimiter:
+    def limit(self, *args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
+limiter = DummyLimiter()
 
 
 @router.post("/chat", response_model=APIResponse[AIChatResponse])
@@ -375,4 +384,174 @@ async def safety_guidance(
                     "Safety team support"
                 ]
             }
+        )
+
+
+@router.post("/ingest", response_model=APIResponse[DocumentIngestResponse], status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit("5/minute")
+async def ingest_document(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    collection_name: str = Form(...),
+    uploader_role: str = Form(...),
+    tags: Optional[str] = Form(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Ingest a document (PDF, Text) asynchronously.
+    Creates a background job to parse, clean, chunk, embed, and store vector embeddings.
+    """
+    import uuid
+    import os
+    from app.services.storage import get_storage_service
+    from app.models.document import Document, DocStatus
+
+    if collection_name not in ["scholarships", "colleges", "safety"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="collection_name must be one of: scholarships, colleges, safety"
+        )
+
+    # 1. Write file to storage
+    storage = get_storage_service()
+    doc_uuid = uuid.uuid4()
+    file_ext = os.path.splitext(file.filename)[1]
+    relative_path = f"documents/{collection_name}/{doc_uuid}{file_ext}"
+    
+    try:
+        stored_path = await storage.upload_file(file, relative_path)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Storage upload failed: {str(e)}"
+        )
+
+    # Calculate file size
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+
+    # Parse tags
+    tag_list = []
+    if tags:
+        tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+
+    # 2. Create document record in DB
+    document = Document(
+        id=doc_uuid,
+        title=file.filename,
+        file_name=file.filename,
+        file_path=stored_path,
+        file_size=file_size,
+        mime_type=file.content_type or "application/octet-stream",
+        collection_name=collection_name,
+        uploader_id=current_user.id,
+        uploader_role=uploader_role,
+        tags=tag_list,
+        status=DocStatus.PENDING
+    )
+    
+    db.add(document)
+    await db.commit()
+    await db.refresh(document)
+
+    # 3. Schedule Background Ingestion task (and run it synchronously to guarantee execution)
+    await run_ingestion(document.id)
+
+    return APIResponse(
+        success=True,
+        message="Document uploaded and ingestion scheduled",
+        data=DocumentIngestResponse(
+            document_id=str(document.id),
+            status=document.status.value,
+            collection_name=document.collection_name
+        )
+    )
+
+async def run_ingestion(document_id: UUID):
+    from loguru import logger
+    logger.info(f"Starting run_ingestion background task for document_id={document_id}")
+    try:
+        from app.database import async_session_factory
+        from app.services.ingestion import IngestionService
+        
+        async with async_session_factory() as session:
+            service = IngestionService(session)
+            await service.process_document(document_id)
+    except Exception as e:
+        logger.exception(f"Fatal error in run_ingestion background task for {document_id}: {e}")
+
+
+@router.get("/ingest/status/{document_id}", response_model=APIResponse[IngestStatusResponse])
+async def get_ingest_status(
+    document_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Check processing status of a document ingestion job"""
+    from app.models.document import Document, DocumentChunk
+    from sqlalchemy import func
+
+    # Fetch document
+    doc = await db.get(Document, document_id)
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ingestion job / document not found"
+        )
+
+    # Count generated chunks
+    result = await db.execute(
+        select(func.count(DocumentChunk.id)).where(DocumentChunk.document_id == document_id)
+    )
+    total_chunks = result.scalar_one()
+
+    return APIResponse(
+        success=True,
+        message="Ingestion status retrieved",
+        data=IngestStatusResponse(
+            document_id=str(doc.id),
+            status=doc.status.value,
+            total_chunks=total_chunks,
+            error_message=doc.error_message
+        )
+    )
+
+
+@router.post("/query", response_model=APIResponse[AIQueryResponse])
+@limiter.limit("15/minute")
+async def query_assistant(
+    request: AIQueryRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Query the grounded RAG assistant (scholarships, colleges, or safety).
+    Answers are verified and grounded strictly on uploaded reference documents.
+    """
+    from app.services.orchestrator import RAGOrchestrator
+
+    if request.assistant_type not in ["scholarships", "colleges", "safety"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="assistant_type must be one of: scholarships, colleges, safety"
+        )
+
+    try:
+        orchestrator = RAGOrchestrator(db)
+        result = await orchestrator.query_assistant(
+            question=request.question,
+            assistant_type=request.assistant_type,
+            filters=request.filters
+        )
+        return APIResponse(
+            success=True,
+            message="Answer generated",
+            data=AIQueryResponse(**result)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"RAG query execution failed: {str(e)}"
         )

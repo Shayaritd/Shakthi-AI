@@ -4,8 +4,8 @@ Extended profile for mentors with verification and trust score
 """
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any
-from sqlalchemy import String, Integer, Float, Text, DateTime, Boolean, Enum, func
+from typing import Optional, Dict, Any, List
+from sqlalchemy import String, Integer, Float, Text, DateTime, Boolean, Enum, func, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -56,25 +56,30 @@ class MentorProfile(Base):
     user: Mapped["User"] = relationship("User", back_populates="mentor_profile", lazy="selectin")
     mentorship_requests: Mapped[List["MentorshipRequest"]] = relationship(
         "MentorshipRequest",
-        foreign_keys="MentorshipRequest.mentor_id",
-        back_populates="mentor",
+        primaryjoin="MentorProfile.user_id == MentorshipRequest.mentor_id",
+        foreign_keys="[MentorshipRequest.mentor_id]",
+        viewonly=True,
         lazy="selectin"
     )
     reviews: Mapped[List["MentorReview"]] = relationship(
         "MentorReview",
-        foreign_keys="MentorReview.mentor_id",
-        back_populates="mentor",
+        primaryjoin="MentorProfile.user_id == MentorReview.mentor_id",
+        foreign_keys="[MentorReview.mentor_id]",
+        viewonly=True,
         lazy="selectin"
     )
     chat_threads: Mapped[List["ChatThread"]] = relationship(
         "ChatThread",
-        foreign_keys="ChatThread.mentor_id",
-        back_populates="mentor",
+        primaryjoin="MentorProfile.user_id == ChatThread.mentor_id",
+        foreign_keys="[ChatThread.mentor_id]",
+        viewonly=True,
         lazy="selectin"
     )
     created_resources: Mapped[List["TrainingResource"]] = relationship(
         "TrainingResource",
-        back_populates="author",
+        primaryjoin="MentorProfile.user_id == TrainingResource.created_by",
+        foreign_keys="[TrainingResource.created_by]",
+        viewonly=True,
         lazy="selectin"
     )
 

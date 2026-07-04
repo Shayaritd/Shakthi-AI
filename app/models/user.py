@@ -53,7 +53,7 @@ class User(Base):
         nullable=False
     )
 
-    # ==================== RELATIONSHIPS ====================
+    # Relationships
     athlete_profile: Mapped[Optional["AthleteProfile"]] = relationship(
         "AthleteProfile",
         back_populates="user",
@@ -114,13 +114,6 @@ class User(Base):
         back_populates="guardian",
         lazy="selectin"
     )
-    saved_scholarships: Mapped[List["SavedScholarship"]] = relationship(
-        "SavedScholarship",
-        foreign_keys="SavedScholarship.user_id",
-        back_populates="athlete_user",
-        lazy="selectin",
-        cascade="all, delete-orphan"
-    )
 
     def __repr__(self) -> str:
         return f"<User {self.email} ({self.role})>"
@@ -154,4 +147,3 @@ from app.models.notification import Notification
 from app.models.chat import ChatMessage
 from app.models.review import MentorReview
 from app.models.mentorship_request import MentorshipRequest
-from app.models.scholarship import SavedScholarship

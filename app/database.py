@@ -25,20 +25,50 @@ class Base(DeclarativeBase):
     metadata = metadata
 
 
-# Create async engine with Neon SSL support
+import ssl
+from loguru import logger
+
+# Create secure SSL context for asyncpg database connection
+ssl_context = None
+try:
+    import certifi
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    ssl_context.check_hostname = True
+    ssl_context.verify_mode = ssl.CERT_REQUIRED
+    logger.info("Database SSL: Secure context initialized using certifi CAs.")
+except Exception as e:
+    logger.warning(f"Database SSL: Failed to initialize certifi secure context: {e}")
+
+if not ssl_context:
+    try:
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = True
+        ssl_context.verify_mode = ssl.CERT_REQUIRED
+        logger.info("Database SSL: Secure context initialized using default system CAs.")
+    except Exception as e:
+        logger.warning(f"Database SSL: Failed to initialize default secure context: {e}")
+
+# Apply secure context or development-only fallback depending on environment.
+# Local development on Windows sometimes lacks root CAs in python 3.11 environment,
+# so we permit a warning-logged fallback with check_hostname=False in development mode.
+if settings.ENVIRONMENT == "development":
+    logger.warning("Database SSL: Local development environment detected. Initializing fallback SSL context with hostname verification disabled.")
+    fallback_context = ssl.create_default_context()
+    fallback_context.check_hostname = False
+    fallback_context.verify_mode = ssl.CERT_NONE
+    connect_args = {"ssl": fallback_context}
+else:
+    connect_args = {"ssl": ssl_context} if ssl_context else {}
+
+
+# Create async engine
 engine = create_async_engine(
     settings.async_database_url,
     pool_size=settings.DATABASE_POOL_SIZE,
     max_overflow=settings.DATABASE_MAX_OVERFLOW,
     echo=settings.DEBUG,
     future=True,
-    connect_args={
-        "ssl": True,  # Required for Neon
-        "timeout": 60,
-        "command_timeout": 60,
-    },
-    pool_pre_ping=True,   # Check connection before using
-    pool_recycle=300,     # Recycle connections every 5 minutes
+    connect_args=connect_args,
 )
 
 # Create async session factory

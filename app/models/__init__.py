@@ -16,6 +16,7 @@ from app.models.sponsor import SponsorProgram, SponsorType, SponsorStatus
 from app.models.review import MentorReview
 from app.models.notification import Notification, NotificationType
 from app.models.chat import ChatThread, ChatMessage
+from app.models.document import Document, DocumentChunk, DocStatus
 
 __all__ = [
     "User", "UserRole",
@@ -32,4 +33,5 @@ __all__ = [
     "MentorReview",
     "Notification", "NotificationType",
     "ChatThread", "ChatMessage",
+    "Document", "DocumentChunk", "DocStatus"
 ]
