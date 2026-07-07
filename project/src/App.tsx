@@ -307,6 +307,16 @@ function App() {
                 }
               />
               <Route
+                path="/safety/report/status"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ReportStatusPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/safety/report/:ticketId"
                 element={
                   <ProtectedRoute>

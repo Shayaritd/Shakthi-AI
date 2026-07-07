@@ -225,7 +225,7 @@ export default function SafetyCenterPage() {
               Check status of your submitted reports
             </p>
             <Button asChild variant="outline" className="mt-4">
-              <Link to="/safety/report">View Reports</Link>
+              <Link to="/safety/report/status">View Reports</Link>
             </Button>
           </CardContent>
         </Card>

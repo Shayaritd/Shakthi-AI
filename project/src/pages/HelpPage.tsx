@@ -17,10 +17,13 @@ import {
   Shield,
   BookOpen,
   CheckCircle,
+  Loader2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { createSafetyReport } from '@/services/api';
 
 const faqs = [
   {
@@ -50,20 +53,40 @@ const faqs = [
 ];
 
 export default function HelpPage() {
+  const { user } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [supportTicketId, setSupportTicketId] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !subject || !message) {
       toast.error('Please fill in all fields');
       return;
     }
-    toast.success('Your support message has been sent successfully!');
-    setSubmitted(true);
+    
+    setLoading(true);
+    try {
+      const ticket = await createSafetyReport({
+        reporterId: user?.id || '00000000-0000-0000-0000-000000000000',
+        category: 'OTHER',
+        severity: 'NORMAL',
+        description: `[SUPPORT TICKET] Name: ${name}\nEmail: ${email}\nSubject: ${subject}\nMessage: ${message}`,
+        anonymous: !user,
+      });
+      
+      setSupportTicketId(ticket.ticket_id);
+      toast.success('Your support message has been sent successfully!');
+      setSubmitted(true);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to submit support ticket.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -141,6 +164,15 @@ export default function HelpPage() {
               <p className="text-sm text-gray-500 max-w-sm mx-auto">
                 Thank you for contacting us. Our support team will get back to you at <strong>{email}</strong> within 24 hours.
               </p>
+              {supportTicketId && (
+                <div className="p-3 bg-gray-50 rounded border text-sm max-w-xs mx-auto">
+                  <span className="text-gray-500 block">Ticket ID:</span>
+                  <Link to={`/safety/report/${supportTicketId}`} className="font-bold text-teal-700 hover:text-teal-900 underline text-base block mt-0.5">
+                    {supportTicketId}
+                  </Link>
+                  <span className="text-[10px] text-gray-400 block mt-1">Click to track investigation</span>
+                </div>
+              )}
               <Button variant="outline" size="sm" onClick={() => setSubmitted(false)}>
                 Send Another Message
               </Button>
@@ -163,7 +195,7 @@ export default function HelpPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="your.email@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -191,8 +223,15 @@ export default function HelpPage() {
                   required
                 />
               </div>
-              <Button type="submit" className="bg-teal-600 hover:bg-teal-700 w-full md:w-auto">
-                Send Message
+              <Button type="submit" className="bg-teal-600 hover:bg-teal-700 w-full md:w-auto" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  'Send Message'
+                )}
               </Button>
             </form>
           )}

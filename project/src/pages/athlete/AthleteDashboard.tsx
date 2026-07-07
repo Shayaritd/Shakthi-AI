@@ -89,19 +89,33 @@ export default function AthleteDashboard() {
 
   const completion = athleteProfile?.profile_completion || 0;
 
+  // Badges Calculation for Dashboard
+  const docAchievementsCount = athleteProfile?.achievements ? (athleteProfile.achievements as any[]).length : 0;
+  const docMediaCount = athleteProfile?.video_urls ? (athleteProfile.video_urls as string[]).length : 0;
+  const isProfileVerified = profile?.verified || false;
+  
+  const dashboardBadges = [
+    { name: 'Rising Star', unlocked: completion >= 50, color: 'bg-amber-50 text-amber-800 border-amber-200' },
+    { name: 'Active Competitor', unlocked: docAchievementsCount > 0, color: 'bg-teal-50 text-teal-800 border-teal-200' },
+    { name: 'Media Showcase', unlocked: docMediaCount > 0, color: 'bg-blue-50 text-blue-800 border-blue-200' },
+    { name: 'Verified Champion', unlocked: isProfileVerified, color: 'bg-purple-50 text-purple-800 border-purple-200' },
+  ];
+
   // Filter dynamic matches based on athlete sport if profile is completed
   const athleteSport = athleteProfile?.sport || '';
   const recommendedOpps = opportunities?.filter(o => 
     athleteSport && o.sport?.toLowerCase().includes(athleteSport.toLowerCase())
   ).slice(0, 2) || [];
 
-  const handleQuery = async (textToQuery?: string) => {
+  const handleQuery = async (textToQuery?: string, typeOverride?: string) => {
     const q = textToQuery || queryText;
+    const targetType = typeOverride || assistantType;
     if (!q.trim()) return;
     setIsLoadingQuery(true);
     setQueryResult(null);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/ai/query', {
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8001';
+      const response = await fetch(`${apiBaseUrl}/api/v1/ai/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -109,7 +123,7 @@ export default function AthleteDashboard() {
         },
         body: JSON.stringify({
           question: q,
-          assistant_type: assistantType,
+          assistant_type: targetType,
           filters: {},
         }),
       });
@@ -366,7 +380,7 @@ export default function AthleteDashboard() {
                           )}
                         </h4>
                         <p className="text-xs text-gray-500">
-                          {mentor.expertise.join(', ')} • {mentor.experience_years} Years Coaching
+                          {(Array.isArray(mentor.expertise) ? mentor.expertise.join(', ') : '')} • {mentor.experience_years} Years Coaching
                         </p>
                       </div>
                     </div>
@@ -440,6 +454,33 @@ export default function AthleteDashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* My Badges Widget */}
+          <Card className="border-gray-200 shadow-sm">
+            <CardHeader className="pb-3 flex flex-row justify-between items-center">
+              <div>
+                <CardTitle className="text-base font-bold flex items-center gap-1.5">
+                  <Award className="w-5 h-5 text-teal-600" />
+                  My Badges
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-2">
+              {dashboardBadges.map((badge, i) => (
+                <div
+                  key={i}
+                  className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center space-y-1.5 transition-all text-xs ${
+                    badge.unlocked ? badge.color : 'bg-gray-50 text-gray-400 border-gray-150'
+                  }`}
+                >
+                  <span className="font-bold text-[10px] leading-tight">{badge.name}</span>
+                  <Badge variant={badge.unlocked ? 'default' : 'secondary'} className={`text-[9px] px-1 py-0.5 ${badge.unlocked ? 'bg-teal-600 text-white border-0' : 'text-gray-450'}`}>
+                    {badge.unlocked ? 'Earned' : 'Locked'}
+                  </Badge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -511,7 +552,15 @@ export default function AthleteDashboard() {
                 key={idx}
                 onClick={() => {
                   setQueryText(q);
-                  handleQuery(q);
+                  let targetType = assistantType;
+                  if (q.toLowerCase().includes('college') || q.toLowerCase().includes('du ')) {
+                    targetType = 'colleges';
+                    setAssistantType('colleges');
+                  } else if (q.toLowerCase().includes('scholarship') || q.toLowerCase().includes('sai')) {
+                    targetType = 'scholarships';
+                    setAssistantType('scholarships');
+                  }
+                  handleQuery(q, targetType);
                 }}
                 className="text-xs bg-white hover:bg-purple-100 text-purple-700 px-3 py-1 rounded-full border border-purple-200 transition-colors"
               >

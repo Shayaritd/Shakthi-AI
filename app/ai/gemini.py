@@ -16,7 +16,7 @@ class GeminiProvider(AIProvider):
     
     def __init__(self, api_key: str = None):
         self.api_key = api_key or settings.GEMINI_API_KEY
-        self.model_name = settings.GEMINI_MODEL or 'gemini-1.5-flash'
+        self.model_name = settings.GEMINI_MODEL or 'gemini-2.5-flash'
         self._model = None
         
         if self.api_key:
@@ -54,11 +54,12 @@ class GeminiProvider(AIProvider):
         if not self.api_key:
             raise RuntimeError("GeminiProvider: api key is missing")
         try:
-            # text-embedding-004 is standard for Gemini embeddings
+            # Use gemini-embedding-001 constrained to 768 dimensions to match database schema
             result = genai.embed_content(
-                model="models/text-embedding-004",
+                model="models/gemini-embedding-001",
                 content=text,
-                task_type="retrieval_document"
+                task_type="retrieval_document",
+                output_dimensionality=768
             )
             return result['embedding']
         except Exception as e:

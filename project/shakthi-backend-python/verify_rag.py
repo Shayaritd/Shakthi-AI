@@ -6,7 +6,7 @@ from sqlalchemy import text
 from app.database import engine
 
 # Config
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://127.0.0.1:8001"
 TEST_FILE_PATH = "safety_test_protocol.txt"
 TEST_FILE_CONTENT = """SHAKTHI Safety Protocol Document 2026.
 Platform safety rules require all mentors to meet athletes only in public, designated sporting venues.

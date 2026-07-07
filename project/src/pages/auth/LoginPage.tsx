@@ -51,11 +51,20 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
+    const startTime = performance.now();
+    console.log("--- Starting Login Performance Measurement ---");
+
     try {
       const result = await signIn(email, password);
+      const authTime = performance.now();
+      console.log(`[Performance] Supabase Auth + Profile Fetch took: ${(authTime - startTime).toFixed(2)}ms`);
+
       if (result.error) {
         setError(result.error.message);
       } else {
+        const routeTime = performance.now();
+        console.log(`[Performance] Navigation initialization took: ${(routeTime - authTime).toFixed(2)}ms`);
+        console.log(`[Performance] Total login flow took: ${(routeTime - startTime).toFixed(2)}ms`);
         navigate(from || getDashboardPath(), { replace: true });
       }
     } catch (err) {

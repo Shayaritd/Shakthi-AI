@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { Profile } from '@/types';
@@ -21,8 +21,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const fetchingUserId = useRef<string | null>(null);
 
   const fetchProfile = useCallback(async (userId: string) => {
+    if (fetchingUserId.current === userId) return;
+    fetchingUserId.current = userId;
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -38,6 +41,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(data as Profile | null);
     } catch (err) {
       console.error('Profile fetch error:', err);
+    } finally {
+      if (fetchingUserId.current === userId) {
+        fetchingUserId.current = null;
+      }
     }
   }, []);
 
@@ -124,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string
   ): Promise<{ error: Error | null }> => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -133,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: new Error(error.message) };
       }
 
+      // No manual fetchProfile call here as onAuthStateChange handles it.
       return { error: null };
     } catch (err) {
       return { error: err as Error };

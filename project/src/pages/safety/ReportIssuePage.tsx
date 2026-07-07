@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { createSafetyReport } from '@/services/api';
@@ -27,6 +27,10 @@ import { REPORT_CATEGORIES, REPORT_SEVERITIES } from '@/constants/theme';
 export default function ReportIssuePage() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialReportedUserId = queryParams.get('userId') || '';
+
   const [submitted, setSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState('');
 
@@ -34,7 +38,7 @@ export default function ReportIssuePage() {
   const [severity, setSeverity] = useState('NORMAL');
   const [description, setDescription] = useState('');
   const [anonymous, setAnonymous] = useState(false);
-  const [reportedUserId, setReportedUserId] = useState('');
+  const [reportedUserId, setReportedUserId] = useState(initialReportedUserId);
 
   const mutation = useMutation({
     mutationFn: () =>

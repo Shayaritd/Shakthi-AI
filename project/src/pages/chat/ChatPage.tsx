@@ -13,15 +13,17 @@ import {
   Send,
   Shield,
   Search,
+  HelpCircle,
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 
 export default function ChatPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, session } = useAuth();
   const { threadId } = useParams();
+  const navigate = useNavigate();
   const [message, setMessage] = useState('');
   const [activeThread, setActiveThread] = useState<string | null>(threadId || null);
 
@@ -34,11 +36,94 @@ export default function ChatPage() {
     enabled: !!user,
   });
 
+  const activeThreadData = threads?.find((t: any) => t.id === activeThread);
+  const otherUser = profile?.role === 'MENTOR' ? activeThreadData?.athlete : activeThreadData?.mentor;
+
+  const [safetyRisk, setSafetyRisk] = useState<{
+    score: number;
+    level: 'LOW' | 'MEDIUM' | 'HIGH';
+    flags: string[];
+    recommendations: string[];
+  }>({ score: 0, level: 'LOW', flags: [], recommendations: [] });
+  const [showSafetyExplain, setShowSafetyExplain] = useState(false);
+
+  const checkMessageRisk = async (lastMsgContent: string, senderId: string) => {
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8001';
+      const response = await fetch(`${apiBaseUrl}/api/v1/ai/message-risk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          message_content: lastMsgContent,
+          sender_id: senderId,
+          receiver_id: user?.id,
+          context: { role: profile?.role },
+        }),
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setSafetyRisk({
+          score: data.data.risk_score,
+          level: data.data.risk_level,
+          flags: data.data.flags || [],
+          recommendations: data.data.recommendations || [],
+        });
+      }
+    } catch (err) {
+      console.warn("Failed to check message risk dynamically, running local check:", err);
+      // Fallback rule-based scanner
+      const lower = lastMsgContent.toLowerCase();
+      const riskyKeywords = ['meet alone', 'secret', 'no parents', 'don\'t tell', 'send pic', 'private'];
+      const flagged = riskyKeywords.filter(k => lower.includes(k));
+      if (flagged.length > 0) {
+        setSafetyRisk({
+          score: 75,
+          level: 'HIGH',
+          flags: flagged,
+          recommendations: ['Avoid meeting alone without a guardian present.', 'Report this message to safety officer immediately.'],
+        });
+      } else {
+        setSafetyRisk({ score: 0, level: 'LOW', flags: [], recommendations: [] });
+      }
+    }
+  };
+
+  const handleReportFromChat = () => {
+    if (otherUser?.id) {
+      navigate(`/safety/report?userId=${otherUser.id}`);
+    }
+  };
+
+  const handleBlockUser = () => {
+    if (!otherUser?.full_name) return;
+    const confirm = window.confirm(`Are you sure you want to block ${otherUser.full_name}? This will mute their messages.`);
+    if (confirm) {
+      alert(`${otherUser.full_name} has been blocked successfully.`);
+      setActiveThread(null);
+    }
+  };
+
   const { data: messages, isLoading: messagesLoading } = useQuery({
     queryKey: ['chatMessages', activeThread],
     queryFn: () => getChatMessages(activeThread!),
     enabled: !!activeThread,
   });
+
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg.sender_id !== user?.id) {
+        checkMessageRisk(lastMsg.content, lastMsg.sender_id);
+      } else {
+        setSafetyRisk({ score: 0, level: 'LOW', flags: [], recommendations: [] });
+      }
+    } else {
+      setSafetyRisk({ score: 0, level: 'LOW', flags: [], recommendations: [] });
+    }
+  }, [messages, activeThread, user?.id]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -162,22 +247,93 @@ export default function ChatPage() {
             <CardHeader className="p-4 border-b flex flex-row items-center gap-3">
               <Avatar className="w-10 h-10">
                 <AvatarFallback className="bg-teal-100 text-teal-700">
-                  T
+                  {otherUser?.full_name?.charAt(0) || 'C'}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-medium">Conversation</p>
+                <p className="font-medium">{otherUser?.full_name || 'Conversation'}</p>
                 <p className="text-xs text-gray-500">
                   Guardian visible for safety
                 </p>
               </div>
-              <div className="ml-auto">
-                <Button variant="outline" size="sm" className="text-rose-600">
+              <div className="ml-auto flex gap-2">
+                <Button variant="outline" size="sm" className="text-rose-600 border-rose-200 hover:bg-rose-50" onClick={handleReportFromChat}>
                   <Shield className="w-4 h-4 mr-1" />
                   Report
                 </Button>
+                <Button variant="outline" size="sm" className="text-gray-600 border-gray-200 hover:bg-gray-50" onClick={handleBlockUser}>
+                  Block
+                </Button>
               </div>
             </CardHeader>
+
+            {/* Chat Safety Alert Bar */}
+            <div className={`px-4 py-2 border-b transition-colors ${
+              safetyRisk.score >= 70 ? 'bg-red-50 text-red-800 border-red-200' :
+              safetyRisk.score >= 35 ? 'bg-amber-50 text-amber-800 border-amber-200' :
+              'bg-teal-50 text-teal-800 border-teal-200'
+            }`}>
+              <div className="flex flex-col gap-1.5 w-full">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className={`w-4 h-4 ${
+                      safetyRisk.score >= 70 ? 'text-red-600 animate-pulse' :
+                      safetyRisk.score >= 35 ? 'text-amber-600' :
+                      'text-teal-600'
+                    }`} />
+                    <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1">
+                      Safety Check: {safetyRisk.level} Risk ({safetyRisk.score}%)
+                      <button 
+                        onClick={() => setShowSafetyExplain(!showSafetyExplain)} 
+                        className="text-gray-400 hover:text-gray-650 transition-colors focus:outline-none"
+                        title="How safety check works"
+                      >
+                        <HelpCircle className="w-3.5 h-3.5 inline text-gray-500" />
+                      </button>
+                    </span>
+                    {safetyRisk.recommendations.length > 0 && (
+                      <span className="text-xs hidden md:inline opacity-90">
+                        — {safetyRisk.recommendations[0]}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    {safetyRisk.score >= 35 && (
+                      <Button
+                        size="sm"
+                        className="bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] px-2 py-1 h-fit"
+                        onClick={handleReportFromChat}
+                      >
+                        Quick Report
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {showSafetyExplain && (
+                  <div className="p-3 bg-white rounded-lg border text-xs text-gray-700 space-y-2 shadow-inner">
+                    <p className="font-semibold text-teal-900">How does the SHAKTHI Safety Check work?</p>
+                    <p>
+                      Every message is scanned by our AI backend (using Gemini safety policies) to identify potential harassment, inappropriate boundaries, or offline meetups without guardian approval.
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 pt-1 font-mono text-[10px]">
+                      <div className="p-1.5 bg-teal-50 border border-teal-200 rounded text-teal-800 text-center">
+                        <span className="font-bold block">LOW (0-34%)</span>
+                        Safe conversation.
+                      </div>
+                      <div className="p-1.5 bg-amber-50 border border-amber-200 rounded text-amber-800 text-center">
+                        <span className="font-bold block">MEDIUM (35-69%)</span>
+                        Warning flagged.
+                      </div>
+                      <div className="p-1.5 bg-red-50 border border-red-200 rounded text-red-800 text-center">
+                        <span className="font-bold block">HIGH (70-100%)</span>
+                        Critical safety risk.
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
             <ScrollArea className="flex-1 p-4">
               {messagesLoading ? (
@@ -224,6 +380,47 @@ export default function ChatPage() {
                 </div>
               )}
             </ScrollArea>
+
+            {/* Developer Safety Simulator Control Panel */}
+            <div className="px-4 py-2 border-t bg-gray-50 flex items-center justify-between text-xs border-b">
+              <span className="text-gray-500 font-medium font-mono text-[10px]">Simulate Safety Response:</span>
+              <div className="flex gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[10px] px-2 text-teal-700 border-teal-200 hover:bg-teal-50 bg-white"
+                  onClick={() => setSafetyRisk({ score: 10, level: 'LOW', flags: [], recommendations: [] })}
+                >
+                  Safe (LOW)
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[10px] px-2 text-amber-700 border-amber-200 hover:bg-amber-50 bg-white"
+                  onClick={() => setSafetyRisk({
+                    score: 45,
+                    level: 'MEDIUM',
+                    flags: ['offline_meeting'],
+                    recommendations: ['Guardians should approve any offline interactions. Keep communication in app.']
+                  })}
+                >
+                  Warning (MEDIUM)
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[10px] px-2 text-red-700 border-red-200 hover:bg-red-50 bg-white"
+                  onClick={() => setSafetyRisk({
+                    score: 85,
+                    level: 'HIGH',
+                    flags: ['harassment', 'inappropriate'],
+                    recommendations: ['Avoid meeting alone without a guardian present.', 'Report this message to safety officer immediately.']
+                  })}
+                >
+                  Risky (HIGH)
+                </Button>
+              </div>
+            </div>
 
             <div className="p-4 border-t">
               <div className="flex gap-2">

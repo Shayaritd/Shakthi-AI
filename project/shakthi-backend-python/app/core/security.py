@@ -5,6 +5,19 @@ JWT token handling, password hashing, and authentication utilities
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from jose import jwt, JWTError
+
+# Monkeypatch bcrypt to avoid passlib 72-byte password length error with newer bcrypt versions
+try:
+    import bcrypt
+    orig_hashpw = bcrypt.hashpw
+    def patched_hashpw(password, salt):
+        if isinstance(password, bytes) and len(password) > 72:
+            password = password[:72]
+        return orig_hashpw(password, salt)
+    bcrypt.hashpw = patched_hashpw
+except ImportError:
+    pass
+
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
 

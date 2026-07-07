@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -81,8 +81,13 @@ export default function SignupPage() {
   const navigate = useNavigate();
   const { signUp, user } = useAuth();
 
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard/athlete');
+    }
+  }, [user, navigate]);
+
   if (user) {
-    navigate('/dashboard/athlete');
     return null;
   }
 

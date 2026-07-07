@@ -169,7 +169,7 @@ export default function MentorDetailPage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-700 leading-relaxed">
-                {mentor.bio || `${mentor.profile?.full_name} is a ${mentor.experience_years}-year experienced coach in ${mentor.expertise.join(', ')}.`}
+                {mentor.bio || `${mentor.profile?.full_name} is a ${mentor.experience_years}-year experienced coach in ${(Array.isArray(mentor.expertise) ? mentor.expertise.join(', ') : '')}.`}
               </p>
               {mentor.training_philosophy && (
                 <>

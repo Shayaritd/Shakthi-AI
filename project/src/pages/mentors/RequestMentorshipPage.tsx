@@ -131,7 +131,7 @@ export default function RequestMentorshipPage() {
                 <h2 className="text-lg font-semibold">{mentor.profile?.full_name}</h2>
                 {mentor.verified && <Shield className="w-4 h-4 text-teal-600" />}
               </div>
-              <p className="text-sm text-gray-500">{mentor.expertise.join(', ')}</p>
+              <p className="text-sm text-gray-500">{(Array.isArray(mentor.expertise) ? mentor.expertise.join(', ') : '')}</p>
             </div>
           </div>
         </CardContent>

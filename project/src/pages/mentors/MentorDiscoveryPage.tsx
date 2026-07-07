@@ -187,7 +187,7 @@ export default function MentorDiscoveryPage() {
                       )}
                     </div>
                     <p className="text-sm text-gray-500">
-                      {mentor.expertise.slice(0, 2).join(', ')}
+                      {Array.isArray(mentor.expertise) ? mentor.expertise.slice(0, 2).join(', ') : ''}
                     </p>
                     <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
                       <MapPin className="w-3 h-3" />

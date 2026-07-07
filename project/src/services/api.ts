@@ -204,10 +204,34 @@ export async function updateAthleteProfile(
   userId: string,
   updates: Partial<AthleteProfile>
 ): Promise<AthleteProfile> {
+  const allowedKeys = [
+    'sport',
+    'position',
+    'district',
+    'state',
+    'level',
+    'achievements',
+    'video_urls',
+    'goals',
+    'bio',
+    'preferred_language',
+    'guardian_name',
+    'guardian_phone',
+    'profile_completion',
+    'visibility_settings',
+    'date_of_birth'
+  ];
+
+  const sanitizedUpdates: Record<string, any> = {};
+  for (const key of allowedKeys) {
+    if (updates[key as keyof AthleteProfile] !== undefined) {
+      sanitizedUpdates[key] = updates[key as keyof AthleteProfile];
+    }
+  }
+
   const { data, error } = await supabase
     .from('athlete_profiles')
-    .update(updates)
-    .eq('user_id', userId)
+    .upsert({ user_id: userId, ...sanitizedUpdates })
     .select()
     .single();
 
@@ -277,10 +301,34 @@ export async function updateMentorProfile(
   userId: string,
   updates: Partial<MentorProfile>
 ): Promise<MentorProfile> {
+  const allowedKeys = [
+    'expertise',
+    'experience_years',
+    'verified',
+    'certifications',
+    'languages',
+    'trust_score',
+    'availability',
+    'training_philosophy',
+    'code_of_conduct_accepted',
+    'response_time_hours',
+    'total_reviews',
+    'average_rating',
+    'district',
+    'state',
+    'bio'
+  ];
+
+  const sanitizedUpdates: Record<string, any> = {};
+  for (const key of allowedKeys) {
+    if (updates[key as keyof MentorProfile] !== undefined) {
+      sanitizedUpdates[key] = updates[key as keyof MentorProfile];
+    }
+  }
+
   const { data, error } = await supabase
     .from('mentor_profiles')
-    .update(updates)
-    .eq('user_id', userId)
+    .upsert({ user_id: userId, ...sanitizedUpdates })
     .select()
     .single();
 
