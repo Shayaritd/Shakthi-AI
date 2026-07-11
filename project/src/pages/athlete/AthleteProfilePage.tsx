@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAthleteProfile, updateAthleteProfile, calculateProfileCompletion } from '@/services/api';
@@ -48,6 +48,37 @@ export default function AthleteProfilePage() {
   });
 
   const [formData, setFormData] = useState<Record<string, any>>({});
+
+  // Sync draft and editing state from localStorage when user ID is loaded
+  useEffect(() => {
+    if (user?.id) {
+      const isEditing = localStorage.getItem(`athlete_profile_editing_${user.id}`) === 'true';
+      if (isEditing) {
+        setEditing(true);
+        const draft = localStorage.getItem(`athlete_profile_draft_${user.id}`);
+        if (draft) {
+          try {
+            setFormData(JSON.parse(draft));
+          } catch (e) {
+            console.error('Error parsing profile draft:', e);
+          }
+        }
+      }
+    }
+  }, [user?.id]);
+
+  // Persist draft whenever editing or formData changes
+  useEffect(() => {
+    if (user?.id) {
+      if (editing) {
+        localStorage.setItem(`athlete_profile_editing_${user.id}`, 'true');
+        localStorage.setItem(`athlete_profile_draft_${user.id}`, JSON.stringify(formData));
+      } else {
+        localStorage.removeItem(`athlete_profile_editing_${user.id}`);
+        localStorage.removeItem(`athlete_profile_draft_${user.id}`);
+      }
+    }
+  }, [editing, formData, user?.id]);
   
   // State for achievements dialog/inline form
   const [showAddAchievement, setShowAddAchievement] = useState(false);
@@ -60,6 +91,7 @@ export default function AthleteProfilePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['athleteProfile', user?.id] });
       setEditing(false);
+      setFormData({});
     },
   });
 
@@ -338,28 +370,42 @@ export default function AthleteProfilePage() {
               </div>
             </div>
 
-            <Button
-              variant={editing ? 'default' : 'outline'}
-              onClick={() => {
-                if (editing) {
-                  handleSave();
-                } else {
-                  setFormData(athleteProfile || {});
-                  setEditing(true);
-                }
-              }}
-              disabled={updateMutation.isPending}
-              className={editing ? 'bg-teal-600 hover:bg-teal-700' : ''}
-            >
-              {updateMutation.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : editing ? (
-                <Save className="w-4 h-4 mr-2" />
-              ) : (
-                <Edit2 className="w-4 h-4 mr-2" />
+            <div className="flex gap-2">
+              <Button
+                variant={editing ? 'default' : 'outline'}
+                onClick={() => {
+                  if (editing) {
+                    handleSave();
+                  } else {
+                    setFormData(athleteProfile || {});
+                    setEditing(true);
+                  }
+                }}
+                disabled={updateMutation.isPending}
+                className={editing ? 'bg-teal-600 hover:bg-teal-700' : ''}
+              >
+                {updateMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : editing ? (
+                  <Save className="w-4 h-4 mr-2" />
+                ) : (
+                  <Edit2 className="w-4 h-4 mr-2" />
+                )}
+                {editing ? 'Save Changes' : 'Edit Profile'}
+              </Button>
+              {editing && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditing(false);
+                    setFormData({});
+                  }}
+                  disabled={updateMutation.isPending}
+                >
+                  Cancel
+                </Button>
               )}
-              {editing ? 'Save Changes' : 'Edit Profile'}
-            </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

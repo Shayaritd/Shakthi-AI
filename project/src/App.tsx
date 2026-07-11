@@ -13,6 +13,7 @@ import MentorOnboardingPage from '@/pages/onboarding/MentorOnboardingPage';
 import GuardianOnboardingPage from '@/pages/onboarding/GuardianOnboardingPage';
 import AthleteDashboard from '@/pages/athlete/AthleteDashboard';
 import MentorDashboard from '@/pages/mentor/MentorDashboard';
+import MyAthletesPage from '@/pages/mentor/MyAthletesPage';
 import GuardianDashboard from '@/pages/guardian/GuardianDashboard';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import MentorDiscoveryPage from '@/pages/mentors/MentorDiscoveryPage';
@@ -157,6 +158,16 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <MentorDiscoveryPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/mentors/my-athletes"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <MyAthletesPage />
                     </Layout>
                   </ProtectedRoute>
                 }

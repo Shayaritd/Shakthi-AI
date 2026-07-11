@@ -49,24 +49,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: initialSession } }: { data: { session: Session | null } }) => {
-      setSession(initialSession);
-      setUser(initialSession?.user ?? null);
-      if (initialSession?.user) {
-        fetchProfile(initialSession.user.id);
+    let active = true;
+
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        if (!active) return;
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+        if (initialSession?.user) {
+          await fetchProfile(initialSession.user.id);
+        }
+      } catch (err) {
+        console.error('Error during auth initialization:', err);
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
-    });
+    };
+
+    initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event: AuthChangeEvent, newSession: Session | null) => {
+      async (event: AuthChangeEvent, newSession: Session | null) => {
+        if (!active) return;
+        setLoading(true);
         setSession(newSession);
         setUser(newSession?.user ?? null);
 
         if (newSession?.user) {
-          (async () => {
-            await fetchProfile(newSession.user.id);
-          })();
+          await fetchProfile(newSession.user.id);
         } else {
           setProfile(null);
         }
@@ -75,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => {
+      active = false;
       subscription.unsubscribe();
     };
   }, [fetchProfile]);
@@ -101,23 +115,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         return { error: new Error(error.message) };
-      }
-
-      if (data.user) {
-        const { error: profileError } = await supabase.from('profiles').insert({
-          id: data.user.id,
-          full_name: fullName,
-          role,
-          phone: phone || null,
-          verified: false,
-          is_active: true,
-          preferred_language: 'en',
-        });
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          return { error: new Error(profileError.message) };
-        }
       }
 
       return { error: null };

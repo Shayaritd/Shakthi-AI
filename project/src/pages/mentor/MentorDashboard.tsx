@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getMentorProfile, getMentorshipRequests, updateMentorshipRequest, getOrCreateChatThread } from '@/services/api';
+import { getMentorProfile, getMentorshipRequests, updateMentorshipRequest, getOrCreateChatThread, getMentoredAthletes } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,12 @@ export default function MentorDashboard() {
   const { data: requests } = useQuery({
     queryKey: ['mentorRequests', user?.id],
     queryFn: () => getMentorshipRequests(user!.id, 'mentor'),
+    enabled: !!user,
+  });
+
+  const { data: activeAthletes = [] } = useQuery({
+    queryKey: ['mentoredAthletes', user?.id],
+    queryFn: () => getMentoredAthletes(user!.id),
     enabled: !!user,
   });
 
@@ -92,7 +98,7 @@ export default function MentorDashboard() {
               <Users className="w-5 h-5 text-teal-600" />
             </div>
             <p className="text-3xl font-bold text-gray-900 mt-2">
-              {mentorProfile?.total_reviews || 0}
+              {activeAthletes.length}
             </p>
           </CardContent>
         </Card>
@@ -103,7 +109,7 @@ export default function MentorDashboard() {
               <Star className="w-5 h-5 text-amber-500" />
             </div>
             <p className="text-3xl font-bold text-gray-900 mt-2">
-              {mentorProfile?.average_rating?.toFixed(1) || 'New'}
+              {mentorProfile?.average_rating ? mentorProfile.average_rating.toFixed(1) : 'New'}
             </p>
           </CardContent>
         </Card>
@@ -114,7 +120,7 @@ export default function MentorDashboard() {
               <Clock className="w-5 h-5 text-blue-600" />
             </div>
             <p className="text-3xl font-bold text-gray-900 mt-2">
-              {mentorProfile?.response_time_hours}h
+              {mentorProfile?.response_time_hours ? `${mentorProfile.response_time_hours}h` : '24h'}
             </p>
           </CardContent>
         </Card>
@@ -124,7 +130,9 @@ export default function MentorDashboard() {
               <p className="text-sm text-gray-500">Active Mentorships</p>
               <MessageSquare className="w-5 h-5 text-rose-600" />
             </div>
-            <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">
+              {activeAthletes.length}
+            </p>
           </CardContent>
         </Card>
       </div>

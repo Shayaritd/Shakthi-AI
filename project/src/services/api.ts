@@ -284,6 +284,40 @@ export async function getMentorProfile(userId: string): Promise<MentorProfile | 
   return data as MentorProfile | null;
 }
 
+export async function getMentoredAthletes(mentorId: string): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('mentorship_requests')
+      .select(`
+        id,
+        status,
+        goal,
+        mode,
+        athlete_id,
+        athlete:profiles!athlete_id(
+          id,
+          full_name,
+          avatar_url,
+          district,
+          state,
+          athlete_profile:athlete_profiles!user_id(
+            sport,
+            level,
+            bio
+          )
+        )
+      `)
+      .eq('mentor_id', mentorId)
+      .eq('status', 'APPROVED');
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error("Error in getMentoredAthletes:", err);
+    return [];
+  }
+}
+
 export async function createMentorProfile(
   profile: Partial<MentorProfile>
 ): Promise<MentorProfile> {

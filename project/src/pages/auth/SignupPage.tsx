@@ -69,7 +69,7 @@ const roles = [
 ];
 
 export default function SignupPage() {
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string | null>('ATHLETE');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -193,10 +193,10 @@ export default function SignupPage() {
                       type="button"
                       onClick={() => setSelectedRole(role.value)}
                       className={cn(
-                        'flex items-start gap-3 p-3 rounded-xl border-2 transition-all text-left',
+                        'flex items-start gap-3 p-3 rounded-xl border-2 transition-all text-left w-full',
                         selectedRole === role.value
                           ? role.selectedColor
-                          : `${role.color} hover:border-gray-300`
+                          : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                       )}
                     >
                       <role.icon className="w-5 h-5 mt-0.5 shrink-0" />
