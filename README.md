@@ -633,3 +633,5 @@ pytest --cov=app
 pytest tests/test_auth.py
 ```
 >>>>>>> 6f4e322b467689ec16dfdb195c74fc998b849775
+U p d a t e d   R E A D M E   w i t h   n e w   f e a t u r e  
+ 
