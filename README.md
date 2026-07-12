@@ -633,3 +633,8 @@ pytest --cov=app
 pytest tests/test_auth.py
 ```
 >>>>>>> 6f4e322b467689ec16dfdb195c74fc998b849775
+>>>>>>>
+>>>>>>> 
+>>>>>>> Shayari Gowda - shayaritd23@gmail.com
+
+Project Link: https://github.com/Shayaritd/SHAKTHI-AI
