@@ -22,6 +22,7 @@ class AthleteProfileBase(BaseModel):
     preferred_language: str = Field(default="en", max_length=10)
     guardian_name: Optional[str] = Field(None, max_length=255)
     guardian_phone: Optional[str] = Field(None, max_length=20)
+    guardian_email: Optional[str] = Field(None, max_length=255)
 
 
 class AthleteProfileCreate(AthleteProfileBase):
@@ -43,6 +44,7 @@ class AthleteProfileUpdate(BaseModel):
     preferred_language: Optional[str] = Field(None, max_length=10)
     guardian_name: Optional[str] = Field(None, max_length=255)
     guardian_phone: Optional[str] = Field(None, max_length=20)
+    guardian_email: Optional[str] = Field(None, max_length=255)
     achievements: Optional[Dict[str, Any]] = None
     video_urls: Optional[Dict[str, Any]] = None
     visibility_settings: Optional[Dict[str, Any]] = None
@@ -64,6 +66,7 @@ class AthleteProfileResponse(BaseModel):
     preferred_language: str
     guardian_name: Optional[str]
     guardian_phone: Optional[str]
+    guardian_email: Optional[str]
     profile_completion: int
     visibility_settings: Optional[Dict[str, Any]]
     created_at: datetime

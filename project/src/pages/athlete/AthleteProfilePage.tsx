@@ -30,14 +30,16 @@ import {
   Loader2,
   Trash2,
   Plus,
+  Camera,
 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SPORTS_LIST, INDIAN_STATES, ATHLETE_LEVELS } from '@/constants/theme';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
 export default function AthleteProfilePage() {
-  const { user, profile: userProfile } = useAuth();
+  const { user, profile: userProfile, refreshProfile } = useAuth();
   const [editing, setEditing] = useState(false);
   const queryClient = useQueryClient();
 
@@ -149,6 +151,65 @@ export default function AthleteProfilePage() {
       toast.success("Achievement deleted successfully!");
     } catch (err: any) {
       toast.error(err.message || "Failed to delete achievement.");
+    }
+  };
+
+  // State for avatar upload
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (5MB limit)
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      toast.error("Avatar size exceeds 5MB limit.");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      let publicUrl = '';
+      const fileExt = file.name.split('.').pop();
+      const fileName = `avatars/${user!.id}/${Date.now()}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('media')
+        .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+      if (error) {
+        console.warn("Storage upload failed, using fallback FileReader:", error.message);
+        const reader = new FileReader();
+        publicUrl = await new Promise<string>((resolve) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+      } else {
+        const { data: urlData } = supabase.storage
+          .from('media')
+          .getPublicUrl(fileName);
+        publicUrl = urlData.publicUrl;
+      }
+
+      // Update profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user!.id);
+
+      if (profileError) throw profileError;
+
+      // Invalidate queries and refresh profile
+      queryClient.invalidateQueries({ queryKey: ['athleteProfile', user?.id] });
+      await refreshProfile();
+      toast.success("Profile picture updated successfully!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to update profile picture.");
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
     }
   };
 
@@ -355,15 +416,37 @@ export default function AthleteProfilePage() {
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row gap-6 items-start">
-            <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-teal-100 flex items-center justify-center text-3xl font-bold text-teal-700">
-                {athleteUserProfile?.full_name?.charAt(0) || 'A'}
-              </div>
+            <div className="relative group">
+              <Avatar className="w-24 h-24 border-2 border-teal-100 shadow-md">
+                <AvatarImage src={athleteUserProfile?.avatar_url || ''} alt={athleteUserProfile?.full_name} className="object-cover" />
+                <AvatarFallback className="bg-teal-100 text-3xl font-bold text-teal-700">
+                  {athleteUserProfile?.full_name?.charAt(0) || 'A'}
+                </AvatarFallback>
+              </Avatar>
               {athleteUserProfile?.verified && (
                 <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-teal-600 flex items-center justify-center border-2 border-white">
                   <CheckCircle className="w-4 h-4 text-white" />
                 </div>
               )}
+              {/* Profile picture upload overlay */}
+              <label 
+                htmlFor="avatar-upload-input" 
+                className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                {uploadingAvatar ? (
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                ) : (
+                  <Camera className="w-6 h-6 text-white" />
+                )}
+              </label>
+              <input
+                type="file"
+                id="avatar-upload-input"
+                className="hidden"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                disabled={uploadingAvatar}
+              />
             </div>
 
             <div className="flex-1">

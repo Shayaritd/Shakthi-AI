@@ -82,6 +82,22 @@ const adminNavItems = [
   { label: 'Analytics', icon: BarChart3, path: '/admin/analytics' },
 ];
 
+const sponsorNavItems = [
+  { label: 'Dashboard', icon: Home, path: '/dashboard/sponsor' },
+  { label: 'Scholarships', icon: Award, path: '/scholarships' },
+  { label: 'Opportunities', icon: Calendar, path: '/opportunities' },
+  { label: 'Safety', icon: Shield, path: '/safety' },
+  { label: 'Chat', icon: MessageSquare, path: '/chat' },
+];
+
+const collegeRepNavItems = [
+  { label: 'Dashboard', icon: Home, path: '/dashboard/college' },
+  { label: 'Colleges', icon: GraduationCap, path: '/colleges' },
+  { label: 'Opportunities', icon: Calendar, path: '/opportunities' },
+  { label: 'Safety', icon: Shield, path: '/safety' },
+  { label: 'Chat', icon: MessageSquare, path: '/chat' },
+];
+
 export default function Layout({ children }: LayoutProps) {
   const { profile, signOut } = useAuth();
   const location = useLocation();
@@ -136,7 +152,11 @@ export default function Layout({ children }: LayoutProps) {
         ? mentorNavItems
         : profile?.role === 'GUARDIAN'
           ? guardianNavItems
-          : athleteNavItems;
+          : profile?.role === 'SPONSOR'
+            ? sponsorNavItems
+            : profile?.role === 'COLLEGE_REP'
+              ? collegeRepNavItems
+              : athleteNavItems;
 
   const handleSignOut = async () => {
     await signOut();

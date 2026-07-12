@@ -79,15 +79,50 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { signUp, user } = useAuth();
+  const { signUp, user, isOnboarded, profile } = useAuth();
 
   useEffect(() => {
     if (user) {
-      navigate('/dashboard/athlete');
+      if (isOnboarded) {
+        switch (profile?.role) {
+          case 'ATHLETE':
+            navigate('/dashboard/athlete');
+            break;
+          case 'MENTOR':
+            navigate('/dashboard/mentor');
+            break;
+          case 'GUARDIAN':
+            navigate('/dashboard/guardian');
+            break;
+          case 'SPONSOR':
+            navigate('/dashboard/sponsor');
+            break;
+          case 'COLLEGE_REP':
+            navigate('/dashboard/college');
+            break;
+          case 'ADMIN':
+            navigate('/dashboard/admin');
+            break;
+          default:
+            navigate('/dashboard/athlete');
+        }
+      } else if (profile?.role) {
+        switch (profile.role) {
+          case 'ATHLETE':
+            navigate('/signup/athlete');
+            break;
+          case 'MENTOR':
+            navigate('/signup/mentor');
+            break;
+          case 'GUARDIAN':
+            navigate('/signup/guardian');
+            break;
+        }
+      }
     }
-  }, [user, navigate]);
+  }, [user, isOnboarded, profile, navigate]);
 
-  if (user) {
+  if (user && (isOnboarded || profile?.role)) {
     return null;
   }
 

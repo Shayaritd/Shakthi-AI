@@ -198,7 +198,7 @@ export default function AthleteDashboard() {
                 <h3 className="font-semibold text-amber-900">Your profile is only {completion}% complete</h3>
               </div>
               <p className="text-sm text-amber-700">
-                Provide your sport name, height, and credentials to receive optimal AI recommendations.
+                Provide your sport, bio, and achievements to receive optimal AI recommendations.
               </p>
             </div>
             <Button asChild className="bg-amber-600 hover:bg-amber-700 whitespace-nowrap">

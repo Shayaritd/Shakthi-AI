@@ -186,8 +186,8 @@ export default function MentorDiscoveryPage() {
                         <Shield className="w-4 h-4 text-teal-600" />
                       )}
                     </div>
-                    <p className="text-sm text-gray-500">
-                      {Array.isArray(mentor.expertise) ? mentor.expertise.slice(0, 2).join(', ') : ''}
+                     <p className="text-sm text-gray-500">
+                      {typeof mentor.expertise === 'string' ? mentor.expertise : (Array.isArray(mentor.expertise) ? mentor.expertise.slice(0, 2).join(', ') : '')}
                     </p>
                     <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
                       <MapPin className="w-3 h-3" />
@@ -212,7 +212,7 @@ export default function MentorDiscoveryPage() {
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-1">
-                  {mentor.languages.slice(0, 3).map((lang) => (
+                  {Array.isArray(mentor.languages) && mentor.languages.slice(0, 3).map((lang) => (
                     <Badge key={lang} variant="secondary" className="text-xs">
                       {lang}
                     </Badge>

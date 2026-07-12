@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, isOnboarded, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -24,6 +24,26 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
   if (!user || !profile) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Force onboarding if they haven't completed it yet
+  const isOnboardingPath = [
+    '/signup/athlete',
+    '/signup/mentor',
+    '/signup/guardian'
+  ].includes(location.pathname);
+
+  if (!isOnboarded && !isOnboardingPath) {
+    switch (profile.role) {
+      case 'ATHLETE':
+        return <Navigate to="/signup/athlete" replace />;
+      case 'MENTOR':
+        return <Navigate to="/signup/mentor" replace />;
+      case 'GUARDIAN':
+        return <Navigate to="/signup/guardian" replace />;
+      default:
+        return <Navigate to="/" replace />;
+    }
   }
 
   if (allowedRoles && !allowedRoles.includes(profile.role)) {

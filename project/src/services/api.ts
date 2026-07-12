@@ -192,7 +192,7 @@ export async function createAthleteProfile(
 ): Promise<AthleteProfile> {
   const { data, error } = await supabase
     .from('athlete_profiles')
-    .insert(profile)
+    .upsert(profile, { onConflict: 'user_id' })
     .select()
     .single();
 
@@ -204,6 +204,15 @@ export async function updateAthleteProfile(
   userId: string,
   updates: Partial<AthleteProfile>
 ): Promise<AthleteProfile> {
+  // Fetch current profile to merge updates and satisfy NOT NULL constraints
+  const { data: currentProfile, error: fetchError } = await supabase
+    .from('athlete_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+
   const allowedKeys = [
     'sport',
     'position',
@@ -229,9 +238,15 @@ export async function updateAthleteProfile(
     }
   }
 
+  const mergedProfile = {
+    user_id: userId,
+    ...(currentProfile || {}),
+    ...sanitizedUpdates,
+  };
+
   const { data, error } = await supabase
     .from('athlete_profiles')
-    .upsert({ user_id: userId, ...sanitizedUpdates }, { onConflict: 'user_id' })
+    .upsert(mergedProfile, { onConflict: 'user_id' })
     .select()
     .single();
 
@@ -323,7 +338,7 @@ export async function createMentorProfile(
 ): Promise<MentorProfile> {
   const { data, error } = await supabase
     .from('mentor_profiles')
-    .insert(profile)
+    .upsert(profile, { onConflict: 'user_id' })
     .select()
     .single();
 
@@ -335,6 +350,15 @@ export async function updateMentorProfile(
   userId: string,
   updates: Partial<MentorProfile>
 ): Promise<MentorProfile> {
+  // Fetch current profile to merge updates and satisfy NOT NULL constraints
+  const { data: currentProfile, error: fetchError } = await supabase
+    .from('mentor_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+
   const allowedKeys = [
     'expertise',
     'experience_years',
@@ -360,9 +384,15 @@ export async function updateMentorProfile(
     }
   }
 
+  const mergedProfile = {
+    user_id: userId,
+    ...(currentProfile || {}),
+    ...sanitizedUpdates,
+  };
+
   const { data, error } = await supabase
     .from('mentor_profiles')
-    .upsert({ user_id: userId, ...sanitizedUpdates }, { onConflict: 'user_id' })
+    .upsert(mergedProfile, { onConflict: 'user_id' })
     .select()
     .single();
 

@@ -66,6 +66,18 @@ export default function MentorDetailPage() {
     { label: 'Punctual', value: reviews?.reduce((acc, r) => acc + r.punctual, 0)! / (reviews?.length || 1) || 0 },
   ];
 
+  const expertiseArray = typeof mentor.expertise === 'string'
+    ? [mentor.expertise]
+    : (Array.isArray(mentor.expertise) ? mentor.expertise : []);
+
+  const languagesArray = Array.isArray(mentor.languages)
+    ? mentor.languages
+    : (typeof mentor.languages === 'string' ? (mentor.languages as string).split(',').map(s => s.trim()) : []);
+
+  const availabilityArray = Array.isArray(mentor.availability)
+    ? mentor.availability
+    : (typeof mentor.availability === 'string' ? (mentor.availability as string).split(',').map(s => s.trim()) : []);
+
   return (
     <div className="space-y-6">
       {/* Back Button */}
@@ -106,7 +118,7 @@ export default function MentorDetailPage() {
               </div>
 
               <div className="flex flex-wrap gap-2 mt-4">
-                {mentor.expertise.map((exp) => (
+                {expertiseArray.map((exp) => (
                   <Badge key={exp} variant="secondary">
                     {exp}
                   </Badge>
@@ -169,7 +181,7 @@ export default function MentorDetailPage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-700 leading-relaxed">
-                {mentor.bio || `${mentor.profile?.full_name} is a ${mentor.experience_years}-year experienced coach in ${(Array.isArray(mentor.expertise) ? mentor.expertise.join(', ') : '')}.`}
+                {mentor.bio || `${mentor.profile?.full_name} is a ${mentor.experience_years}-year experienced coach in ${expertiseArray.join(', ')}.`}
               </p>
               {mentor.training_philosophy && (
                 <>
@@ -304,7 +316,7 @@ export default function MentorDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {mentor.languages.map((lang) => (
+                {languagesArray.map((lang) => (
                   <Badge key={lang} variant="outline">
                     {lang}
                   </Badge>
@@ -322,9 +334,9 @@ export default function MentorDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {mentor.availability && mentor.availability.length > 0 ? (
+              {availabilityArray.length > 0 ? (
                 <div className="space-y-2">
-                  {mentor.availability.map((slot) => (
+                  {availabilityArray.map((slot) => (
                     <div key={slot} className="text-sm text-gray-600">
                       {slot}
                     </div>

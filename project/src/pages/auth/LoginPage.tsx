@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -25,18 +25,33 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { signIn, profile } = useAuth();
+  const { signIn, profile, isOnboarded, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const from = (location.state as any)?.from?.pathname || null;
 
   const getDashboardPath = () => {
+    if (!isOnboarded) {
+      switch (profile?.role) {
+        case 'ATHLETE':
+          return '/signup/athlete';
+        case 'MENTOR':
+          return '/signup/mentor';
+        case 'GUARDIAN':
+          return '/signup/guardian';
+        default:
+          return '/';
+      }
+    }
+
     switch (profile?.role) {
       case 'ATHLETE':
-      case 'SPONSOR':
-      case 'COLLEGE_REP':
         return '/dashboard/athlete';
+      case 'SPONSOR':
+        return '/dashboard/sponsor';
+      case 'COLLEGE_REP':
+        return '/dashboard/college';
       case 'MENTOR':
         return '/dashboard/mentor';
       case 'GUARDIAN':
@@ -47,6 +62,13 @@ export default function LoginPage() {
         return '/dashboard/athlete';
     }
   };
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && profile) {
+      navigate(getDashboardPath(), { replace: true });
+    }
+  }, [user, profile, isOnboarded, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

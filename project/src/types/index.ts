@@ -49,6 +49,7 @@ export interface AthleteProfile {
   guardian_name?: string;
   guardian_phone?: string;
   guardian_email?: string;
+  preferred_language?: string;
   guardian_user_id?: string;
   date_of_birth?: string;
   profile_completion: number;

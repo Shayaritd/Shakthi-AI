@@ -60,6 +60,7 @@ class AthleteProfile(Base):
     preferred_language: Mapped[str] = mapped_column(String(10), default="en", nullable=False)
     guardian_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     guardian_phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    guardian_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     profile_completion: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     visibility_settings: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

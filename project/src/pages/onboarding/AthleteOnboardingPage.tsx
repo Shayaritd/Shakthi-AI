@@ -103,12 +103,26 @@ export default function AthleteOnboardingPage() {
   };
 
   const handleNext = () => {
+    if (currentStep === 0) {
+      if (!formData.sport) {
+        setError('Please select your primary sport before continuing.');
+        return;
+      }
+    }
+    if (currentStep === 1) {
+      if (!formData.state || !formData.district.trim()) {
+        setError('Please select your state and enter your district before continuing.');
+        return;
+      }
+    }
+    setError(null);
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const handleBack = () => {
+    setError(null);
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
@@ -116,6 +130,17 @@ export default function AthleteOnboardingPage() {
 
   const handleSubmit = async () => {
     if (!user) return;
+    
+    if (!formData.sport) {
+      setError('Please select your primary sport.');
+      setCurrentStep(0);
+      return;
+    }
+    if (!formData.state || !formData.district.trim()) {
+      setError('Please select your state and enter your district.');
+      setCurrentStep(1);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -134,6 +159,7 @@ export default function AthleteOnboardingPage() {
         guardian_name: formData.guardian_name,
         guardian_phone: formData.guardian_phone,
         guardian_email: formData.guardian_email,
+        preferred_language: 'en',
         profile_completion: completion,
       });
 

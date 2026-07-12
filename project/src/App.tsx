@@ -38,6 +38,8 @@ import SettingsPage from '@/pages/SettingsPage';
 import HelpPage from '@/pages/HelpPage';
 import AthleteProfilePage from '@/pages/athlete/AthleteProfilePage';
 import SuccessStoriesPage from '@/pages/SuccessStoriesPage';
+import SponsorDashboard from '@/pages/sponsor/SponsorDashboard';
+import CollegeRepDashboard from '@/pages/college/CollegeRepDashboard';
 
 // Components
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -61,8 +63,6 @@ function DashboardRouter() {
 
   switch (profile.role) {
     case 'ATHLETE':
-    case 'SPONSOR':
-    case 'COLLEGE_REP':
       return <Navigate to="/dashboard/athlete" replace />;
     case 'MENTOR':
       return <Navigate to="/dashboard/mentor" replace />;
@@ -70,6 +70,10 @@ function DashboardRouter() {
       return <Navigate to="/dashboard/guardian" replace />;
     case 'ADMIN':
       return <Navigate to="/dashboard/admin" replace />;
+    case 'SPONSOR':
+      return <Navigate to="/dashboard/sponsor" replace />;
+    case 'COLLEGE_REP':
+      return <Navigate to="/dashboard/college" replace />;
     default:
       return <Navigate to="/dashboard/athlete" replace />;
   }
@@ -158,6 +162,26 @@ function App() {
                   <ProtectedRoute allowedRoles={['ADMIN']}>
                     <Layout>
                       <AdminDashboard />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/sponsor"
+                element={
+                  <ProtectedRoute allowedRoles={['SPONSOR']}>
+                    <Layout>
+                      <SponsorDashboard />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/college"
+                element={
+                  <ProtectedRoute allowedRoles={['COLLEGE_REP']}>
+                    <Layout>
+                      <CollegeRepDashboard />
                     </Layout>
                   </ProtectedRoute>
                 }

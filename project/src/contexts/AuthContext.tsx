@@ -7,6 +7,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
+  isOnboarded: boolean;
   loading: boolean;
   signUp: (email: string, password: string, fullName: string, role: string, phone?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -20,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [isOnboarded, setIsOnboarded] = useState(false);
   const [loading, setLoading] = useState(true);
   const fetchingUserId = useRef<string | null>(null);
 
@@ -29,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, athlete_profiles!user_id(id), mentor_profiles!user_id(id)')
         .eq('id', userId)
         .maybeSingle();
 
@@ -38,7 +40,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      setProfile(data as Profile | null);
+      if (data) {
+        setProfile(data as Profile | null);
+        let onboarded = false;
+        if (data.role === 'ATHLETE') {
+          onboarded = Array.isArray(data.athlete_profiles) && data.athlete_profiles.length > 0;
+        } else if (data.role === 'MENTOR') {
+          onboarded = Array.isArray(data.mentor_profiles) && data.mentor_profiles.length > 0;
+        } else if (data.role === 'GUARDIAN') {
+          onboarded = !!data.phone;
+        } else {
+          onboarded = true;
+        }
+        setIsOnboarded(onboarded);
+      } else {
+        setProfile(null);
+        setIsOnboarded(false);
+      }
     } catch (err) {
       console.error('Profile fetch error:', err);
     } finally {
@@ -82,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchProfile(newSession.user.id);
         } else {
           setProfile(null);
+          setIsOnboarded(false);
         }
         setLoading(false);
       }
@@ -149,6 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
     setUser(null);
     setProfile(null);
+    setIsOnboarded(false);
   };
 
   const refreshProfile = async () => {
@@ -161,6 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     user,
     profile,
+    isOnboarded,
     loading,
     signUp,
     signIn,
