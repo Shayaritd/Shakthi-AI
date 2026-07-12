@@ -231,7 +231,7 @@ export async function updateAthleteProfile(
 
   const { data, error } = await supabase
     .from('athlete_profiles')
-    .upsert({ user_id: userId, ...sanitizedUpdates })
+    .upsert({ user_id: userId, ...sanitizedUpdates }, { onConflict: 'user_id' })
     .select()
     .single();
 
@@ -362,7 +362,7 @@ export async function updateMentorProfile(
 
   const { data, error } = await supabase
     .from('mentor_profiles')
-    .upsert({ user_id: userId, ...sanitizedUpdates })
+    .upsert({ user_id: userId, ...sanitizedUpdates }, { onConflict: 'user_id' })
     .select()
     .single();
 
@@ -403,9 +403,6 @@ export async function getMentors(filters?: {
     mentors = data as MentorProfile[];
   } catch (err) {
     console.warn("getMentors DB call failed, using fallback:", err);
-  }
-
-  if (!mentors || mentors.length === 0) {
     mentors = fallbackMentors;
   }
 
@@ -471,9 +468,6 @@ export async function getScholarships(filters?: {
     scholarships = data as Scholarship[];
   } catch (err) {
     console.warn("getScholarships DB call failed, using fallback:", err);
-  }
-
-  if (!scholarships || scholarships.length === 0) {
     scholarships = initialScholarships as any;
   }
 

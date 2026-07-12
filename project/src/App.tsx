@@ -61,6 +61,8 @@ function DashboardRouter() {
 
   switch (profile.role) {
     case 'ATHLETE':
+    case 'SPONSOR':
+    case 'COLLEGE_REP':
       return <Navigate to="/dashboard/athlete" replace />;
     case 'MENTOR':
       return <Navigate to="/dashboard/mentor" replace />;
@@ -84,9 +86,30 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
-              <Route path="/signup/athlete" element={<AthleteOnboardingPage />} />
-              <Route path="/signup/mentor" element={<MentorOnboardingPage />} />
-              <Route path="/signup/guardian" element={<GuardianOnboardingPage />} />
+              <Route
+                path="/signup/athlete"
+                element={
+                  <ProtectedRoute allowedRoles={['ATHLETE']}>
+                    <AthleteOnboardingPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/signup/mentor"
+                element={
+                  <ProtectedRoute allowedRoles={['MENTOR']}>
+                    <MentorOnboardingPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/signup/guardian"
+                element={
+                  <ProtectedRoute allowedRoles={['GUARDIAN']}>
+                    <GuardianOnboardingPage />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Protected Dashboard Routes */}
               <Route
@@ -102,7 +125,7 @@ function App() {
               <Route
                 path="/dashboard/athlete"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE', 'SPONSOR', 'COLLEGE_REP']}>
                     <Layout>
                       <AthleteDashboard />
                     </Layout>
@@ -112,7 +135,7 @@ function App() {
               <Route
                 path="/dashboard/mentor"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['MENTOR']}>
                     <Layout>
                       <MentorDashboard />
                     </Layout>
@@ -122,7 +145,7 @@ function App() {
               <Route
                 path="/dashboard/guardian"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['GUARDIAN']}>
                     <Layout>
                       <GuardianDashboard />
                     </Layout>
@@ -132,7 +155,7 @@ function App() {
               <Route
                 path="/dashboard/admin"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
                     <Layout>
                       <AdminDashboard />
                     </Layout>
@@ -144,7 +167,7 @@ function App() {
               <Route
                 path="/athlete/profile"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE']}>
                     <Layout>
                       <AthleteProfilePage />
                     </Layout>
@@ -155,7 +178,7 @@ function App() {
               <Route
                 path="/mentors"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE', 'GUARDIAN', 'SPONSOR', 'COLLEGE_REP']}>
                     <Layout>
                       <MentorDiscoveryPage />
                     </Layout>
@@ -165,7 +188,7 @@ function App() {
               <Route
                 path="/mentors/my-athletes"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['MENTOR']}>
                     <Layout>
                       <MyAthletesPage />
                     </Layout>
@@ -175,7 +198,7 @@ function App() {
               <Route
                 path="/mentors/:id"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE', 'GUARDIAN', 'MENTOR', 'SPONSOR', 'COLLEGE_REP']}>
                     <Layout>
                       <MentorDetailPage />
                     </Layout>
@@ -185,7 +208,7 @@ function App() {
               <Route
                 path="/mentors/:id/request"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE']}>
                     <Layout>
                       <RequestMentorshipPage />
                     </Layout>
@@ -196,7 +219,7 @@ function App() {
               <Route
                 path="/scholarships"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE', 'GUARDIAN', 'SPONSOR', 'COLLEGE_REP']}>
                     <Layout>
                       <ScholarshipsPage />
                     </Layout>
@@ -206,7 +229,7 @@ function App() {
               <Route
                 path="/scholarships/:id"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE', 'GUARDIAN', 'SPONSOR', 'COLLEGE_REP']}>
                     <Layout>
                       <ScholarshipDetailPage />
                     </Layout>
@@ -216,7 +239,7 @@ function App() {
               <Route
                 path="/scholarships/saved"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE', 'GUARDIAN', 'SPONSOR', 'COLLEGE_REP']}>
                     <Layout>
                       <SavedScholarshipsPage />
                     </Layout>
@@ -227,7 +250,7 @@ function App() {
               <Route
                 path="/colleges"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE', 'GUARDIAN', 'SPONSOR', 'COLLEGE_REP']}>
                     <Layout>
                       <CollegesPage />
                     </Layout>
@@ -237,7 +260,7 @@ function App() {
               <Route
                 path="/colleges/:id"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE', 'GUARDIAN', 'SPONSOR', 'COLLEGE_REP']}>
                     <Layout>
                       <CollegeDetailPage />
                     </Layout>
@@ -247,7 +270,7 @@ function App() {
               <Route
                 path="/colleges/compare"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE', 'GUARDIAN', 'SPONSOR', 'COLLEGE_REP']}>
                     <Layout>
                       <CollegeComparePage />
                     </Layout>
@@ -258,7 +281,7 @@ function App() {
               <Route
                 path="/opportunities"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE', 'GUARDIAN', 'SPONSOR', 'COLLEGE_REP']}>
                     <Layout>
                       <OpportunitiesPage />
                     </Layout>
@@ -268,7 +291,7 @@ function App() {
               <Route
                 path="/opportunities/:id"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE', 'GUARDIAN', 'SPONSOR', 'COLLEGE_REP']}>
                     <Layout>
                       <OpportunityDetailPage />
                     </Layout>
@@ -279,7 +302,7 @@ function App() {
               <Route
                 path="/training"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE', 'GUARDIAN', 'MENTOR', 'SPONSOR', 'COLLEGE_REP']}>
                     <Layout>
                       <TrainingCenterPage />
                     </Layout>
@@ -289,7 +312,7 @@ function App() {
               <Route
                 path="/training/:id"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['ATHLETE', 'GUARDIAN', 'MENTOR', 'SPONSOR', 'COLLEGE_REP']}>
                     <Layout>
                       <TrainingResourcePage />
                     </Layout>

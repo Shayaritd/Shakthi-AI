@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -46,6 +46,32 @@ export default function MentorOnboardingPage() {
     district: '',
     state: '',
   });
+
+  // Load draft from localStorage on mount/user load
+  useEffect(() => {
+    if (user?.id) {
+      const draft = localStorage.getItem(`mentor_onboarding_draft_${user.id}`);
+      if (draft) {
+        try {
+          const parsed = JSON.parse(draft);
+          if (parsed.formData) setFormData(parsed.formData);
+          if (parsed.currentStep !== undefined) setCurrentStep(parsed.currentStep);
+        } catch (e) {
+          console.error('Error parsing onboarding draft:', e);
+        }
+      }
+    }
+  }, [user?.id]);
+
+  // Save draft to localStorage when formData or currentStep changes
+  useEffect(() => {
+    if (user?.id) {
+      localStorage.setItem(
+        `mentor_onboarding_draft_${user.id}`,
+        JSON.stringify({ formData, currentStep })
+      );
+    }
+  }, [formData, currentStep, user?.id]);
 
   const progress = ((currentStep + 1) / steps.length) * 100;
 
@@ -102,6 +128,7 @@ export default function MentorOnboardingPage() {
         code_of_conduct_accepted: true,
       });
 
+      localStorage.removeItem(`mentor_onboarding_draft_${user.id}`);
       await refreshProfile();
       queryClient.invalidateQueries({ queryKey: ['mentorProfile', user.id] });
       toast.success('Onboarding complete! Your profile is pending verification.');

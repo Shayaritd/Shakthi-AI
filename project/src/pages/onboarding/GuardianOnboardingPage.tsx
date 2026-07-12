@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { updateProfile } from '@/services/api';
@@ -23,6 +23,30 @@ export default function GuardianOnboardingPage() {
     childSport: '',
     phone: '',
   });
+
+  // Load draft from localStorage on mount/user load
+  useEffect(() => {
+    if (user?.id) {
+      const draft = localStorage.getItem(`guardian_onboarding_draft_${user.id}`);
+      if (draft) {
+        try {
+          setFormData(JSON.parse(draft));
+        } catch (e) {
+          console.error('Error parsing onboarding draft:', e);
+        }
+      }
+    }
+  }, [user?.id]);
+
+  // Save draft to localStorage when formData changes
+  useEffect(() => {
+    if (user?.id) {
+      localStorage.setItem(
+        `guardian_onboarding_draft_${user.id}`,
+        JSON.stringify(formData)
+      );
+    }
+  }, [formData, user?.id]);
 
   const updateForm = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -53,6 +77,7 @@ export default function GuardianOnboardingPage() {
         relation: formData.relation,
       }));
 
+      localStorage.removeItem(`guardian_onboarding_draft_${user.id}`);
       await refreshProfile();
       toast.success("Guardian profile setup complete!");
       navigate('/dashboard/guardian');

@@ -1,7 +1,7 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUnreadNotificationCount } from '@/services/api';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,6 +87,7 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['unreadNotifications', profile?.id],
@@ -92,6 +95,39 @@ export default function Layout({ children }: LayoutProps) {
     enabled: !!profile,
     refetchInterval: 30000,
   });
+
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    // Subscribe to new notifications
+    const channel = supabase
+      .channel(`user-notifications-${profile.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${profile.id}`,
+        },
+        (payload) => {
+          console.log('Realtime notification received:', payload.new);
+          // Invalidate React Query caches
+          queryClient.invalidateQueries({ queryKey: ['unreadNotifications', profile.id] });
+          queryClient.invalidateQueries({ queryKey: ['notifications', profile.id] });
+          // Show toast alert
+          toast.success(payload.new.title, {
+            description: payload.new.message,
+            duration: 8000,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.id, queryClient]);
 
   const navItems =
     profile?.role === 'ADMIN'

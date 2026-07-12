@@ -192,9 +192,9 @@ export default function MentorDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {mentor.certifications && (mentor.certifications as any[]).length > 0 ? (
+              {Array.isArray(mentor.certifications) && mentor.certifications.length > 0 ? (
                 <div className="space-y-3">
-                  {(mentor.certifications as any[]).map((cert, i) => (
+                  {mentor.certifications.map((cert: any, i: number) => (
                     <div
                       key={i}
                       className="flex items-center justify-between p-3 rounded-lg bg-gray-50"
@@ -210,6 +210,21 @@ export default function MentorDetailPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              ) : typeof mentor.certifications === 'object' && mentor.certifications !== null ? (
+                <div className="p-4 rounded-lg bg-gray-50 space-y-2 border">
+                  <p className="font-semibold text-sm text-teal-800">
+                    Verification Level: {(mentor.certifications as any).level || 'Verified'}
+                  </p>
+                  {Array.isArray((mentor.certifications as any).certifications) && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {((mentor.certifications as any).certifications as string[]).map((c, idx) => (
+                        <Badge key={idx} variant="outline" className="bg-teal-50 text-teal-700 border-teal-200">
+                          {c}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-gray-500 text-sm">Certifications pending verification</p>

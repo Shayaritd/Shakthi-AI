@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getAthleteProfile, getMentors, getScholarships, getNotifications, getOpportunities } from '@/services/api';
+import { getAthleteProfile, getMentors, getScholarships, getNotifications, getOpportunities, getMentorshipRequests } from '@/services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,13 +52,15 @@ export default function AthleteDashboard() {
   });
 
   const { data: mentors, isLoading: mentorsLoading } = useQuery({
-    queryKey: ['mentors', 'recommended'],
-    queryFn: () => getMentors({ verified: true }),
+    queryKey: ['mentors', 'recommended', athleteProfile?.sport],
+    queryFn: () => getMentors({ verified: true, sport: athleteProfile?.sport || undefined }),
+    enabled: !!athleteProfile,
   });
 
   const { data: scholarships, isLoading: scholarshipsLoading } = useQuery({
-    queryKey: ['scholarships', 'matches'],
-    queryFn: () => getScholarships({ girlsOnly: true }),
+    queryKey: ['scholarships', 'matches', athleteProfile?.sport, athleteProfile?.state],
+    queryFn: () => getScholarships({ girlsOnly: true, sport: athleteProfile?.sport || undefined, state: athleteProfile?.state || undefined }),
+    enabled: !!athleteProfile,
   });
 
   const { data: opportunities } = useQuery({
@@ -71,6 +73,14 @@ export default function AthleteDashboard() {
     queryFn: () => (user ? getNotifications(user.id) : []),
     enabled: !!user,
   });
+
+  const { data: mentorshipRequests = [] } = useQuery({
+    queryKey: ['mentorshipRequests', user?.id],
+    queryFn: () => (user ? getMentorshipRequests(user.id, 'athlete') : []),
+    enabled: !!user,
+  });
+
+  const hasApprovedMentor = mentorshipRequests.some(r => r.status === 'APPROVED');
 
   // Query documents count from database using supabase client
   const { data: docsCount } = useQuery({
@@ -99,6 +109,7 @@ export default function AthleteDashboard() {
     { name: 'Active Competitor', unlocked: docAchievementsCount > 0, color: 'bg-teal-50 text-teal-800 border-teal-200' },
     { name: 'Media Showcase', unlocked: docMediaCount > 0, color: 'bg-blue-50 text-blue-800 border-blue-200' },
     { name: 'Verified Champion', unlocked: isProfileVerified, color: 'bg-purple-50 text-purple-800 border-purple-200' },
+    { name: 'Safe Mentor Connected', unlocked: hasApprovedMentor, color: 'bg-rose-50 text-rose-800 border-rose-200' },
   ];
 
   // Filter dynamic matches based on athlete sport if profile is completed
@@ -225,15 +236,21 @@ export default function AthleteDashboard() {
           <CardContent className="p-5 space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-gray-500">Scholarship Fit</span>
-              <Badge className="bg-purple-100 text-purple-700 text-[10px]">
-                AI Insight
+              <Badge className={athleteSport ? "bg-purple-100 text-purple-700 text-[10px]" : "bg-gray-100 text-gray-550 text-[10px]"}>
+                {athleteSport ? "AI Insight" : "Needs Profile"}
               </Badge>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-gray-900">92%</span>
-              <span className="text-xs text-green-600 font-semibold">Match Fit</span>
+              <span className="text-3xl font-extrabold text-gray-900">
+                {athleteSport ? "92%" : "N/A"}
+              </span>
+              {athleteSport && (
+                <span className="text-xs text-green-600 font-semibold">Match Fit</span>
+              )}
             </div>
-            <p className="text-xs text-gray-500">Based on your sports history and academic record.</p>
+            <p className="text-xs text-gray-500">
+              {athleteSport ? "Based on your sports history and academic record." : "Complete your profile to unlock scholarship matching"}
+            </p>
           </CardContent>
         </Card>
 
@@ -242,15 +259,19 @@ export default function AthleteDashboard() {
           <CardContent className="p-5 space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-gray-500">Vector Knowledge</span>
-              <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">
-                From verified documents
+              <Badge className={athleteSport ? "bg-emerald-100 text-emerald-700 text-[10px]" : "bg-gray-100 text-gray-550 text-[10px]"}>
+                {athleteSport ? "From verified documents" : "Grounded"}
               </Badge>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-gray-900">{docsCount || 0}</span>
+              <span className="text-3xl font-extrabold text-gray-900">
+                {athleteSport ? (docsCount || 0) : 0}
+              </span>
               <span className="text-xs text-gray-500 font-medium">Documents</span>
             </div>
-            <p className="text-xs text-gray-500">Parsed PDF guidelines indexed inside safety & RAG storage.</p>
+            <p className="text-xs text-gray-500">
+              {athleteSport ? "Parsed PDF guidelines indexed inside safety & RAG storage." : "Complete your profile to enable grounded guidance"}
+            </p>
           </CardContent>
         </Card>
 
@@ -309,7 +330,7 @@ export default function AthleteDashboard() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recommendedOpps.length > 0 ? (
+              {recommendedOpps.length > 0 && athleteSport ? (
                 recommendedOpps.map(opp => (
                   <div key={opp.id} className="p-4 rounded-xl border border-gray-100 bg-gray-50 flex items-center justify-between gap-4">
                     <div className="space-y-1">
@@ -332,7 +353,11 @@ export default function AthleteDashboard() {
               ) : (
                 <div className="text-center py-6 border border-dashed rounded-xl space-y-2">
                   <p className="text-xs text-gray-500">
-                    No matching events for <strong>{athleteSport || "general"}</strong> trials.
+                    {athleteSport ? (
+                      <>No matching events for <strong>{athleteSport}</strong> trials.</>
+                    ) : (
+                      <>Complete your profile to view recommended sports channels.</>
+                    )}
                   </p>
                   <Button variant="link" size="sm" asChild>
                     <Link to="/opportunities">Browse All Opportunities</Link>
@@ -363,7 +388,7 @@ export default function AthleteDashboard() {
                     <Skeleton key={i} className="h-16 w-full rounded-lg" />
                   ))}
                 </div>
-              ) : mentors && mentors.length > 0 ? (
+              ) : mentors && mentors.length > 0 && athleteSport ? (
                 mentors.slice(0, 2).map((mentor) => (
                   <div key={mentor.id} className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center gap-3">
@@ -385,14 +410,18 @@ export default function AthleteDashboard() {
                       </div>
                     </div>
                     <Button size="sm" variant="outline" asChild>
-                      <Link to={`/mentors/${mentor.user_id}`}>Chat Request</Link>
+                      <Link to={`/mentors/${mentor.user_id}/request`}>Chat Request</Link>
                     </Button>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-6 text-gray-500">
-                  <Users className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                  <p className="text-sm">No coaches found</p>
+                <div className="text-center py-6 border border-dashed rounded-xl space-y-2">
+                  <p className="text-xs text-gray-555">
+                    {athleteSport ? "No coaches matching your sport found." : "Complete your profile to view recommended coaches."}
+                  </p>
+                  <Button variant="link" size="sm" asChild>
+                    <Link to="/mentors">Browse All Coaches</Link>
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -437,7 +466,7 @@ export default function AthleteDashboard() {
               </Badge>
             </CardHeader>
             <CardContent className="space-y-3">
-              {scholarships && scholarships.length > 0 ? (
+              {scholarships && scholarships.length > 0 && athleteSport ? (
                 scholarships.slice(0, 2).map((s) => (
                   <div key={s.id} className="p-3 rounded-xl border border-gray-100 bg-gray-50 space-y-1">
                     <h5 className="font-bold text-gray-900 text-xs line-clamp-1">{s.name}</h5>
@@ -448,8 +477,13 @@ export default function AthleteDashboard() {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-6 text-gray-400 text-xs">
-                  No scholarship matches.
+                <div className="text-center py-6 border border-dashed rounded-xl space-y-2">
+                  <p className="text-xs text-gray-555">
+                    {athleteSport ? "No matching scholarship fits found." : "Complete your profile to view scholarship fits."}
+                  </p>
+                  <Button variant="link" size="sm" asChild>
+                    <Link to="/scholarships">Browse All Scholarships</Link>
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -527,16 +561,17 @@ export default function AthleteDashboard() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400" />
                 <Input
-                  placeholder="Ask about guidelines, sports quota eligibility, or safety rules..."
+                  placeholder={athleteSport ? "Ask about guidelines, sports quota eligibility, or safety rules..." : "Complete your profile to unlock grounded RAG assistant..."}
                   value={queryText}
                   onChange={(e) => setQueryText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleQuery()}
+                  onKeyDown={(e) => e.key === 'Enter' && athleteSport && handleQuery()}
+                  disabled={!athleteSport || isLoadingQuery}
                   className="pl-10 border-purple-200 focus-visible:ring-purple-500"
                 />
               </div>
               <Button
                 onClick={() => handleQuery()}
-                disabled={isLoadingQuery}
+                disabled={!athleteSport || isLoadingQuery}
                 className="bg-purple-600 hover:bg-purple-700 text-white font-semibold"
               >
                 {isLoadingQuery ? 'Searching...' : 'Ask AI'}
@@ -550,6 +585,7 @@ export default function AthleteDashboard() {
             {recentQueries.map((q, idx) => (
               <button
                 key={idx}
+                disabled={!athleteSport}
                 onClick={() => {
                   setQueryText(q);
                   let targetType = assistantType;
@@ -562,7 +598,9 @@ export default function AthleteDashboard() {
                   }
                   handleQuery(q, targetType);
                 }}
-                className="text-xs bg-white hover:bg-purple-100 text-purple-700 px-3 py-1 rounded-full border border-purple-200 transition-colors"
+                className={`text-xs px-3 py-1 rounded-full border border-purple-200 transition-colors ${
+                  athleteSport ? "bg-white hover:bg-purple-100 text-purple-700" : "bg-gray-50 text-gray-400 cursor-not-allowed"
+                }`}
               >
                 {q}
               </button>

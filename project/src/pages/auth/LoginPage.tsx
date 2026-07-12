@@ -34,6 +34,8 @@ export default function LoginPage() {
   const getDashboardPath = () => {
     switch (profile?.role) {
       case 'ATHLETE':
+      case 'SPONSOR':
+      case 'COLLEGE_REP':
         return '/dashboard/athlete';
       case 'MENTOR':
         return '/dashboard/mentor';

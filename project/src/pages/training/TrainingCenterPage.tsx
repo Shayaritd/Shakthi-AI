@@ -141,46 +141,48 @@ export default function TrainingCenterPage() {
           {filteredResources.map((res) => {
             const catLabel = TRAINING_CATEGORIES.find(c => c.value === res.category)?.label || res.category;
             return (
-              <Card key={res.id} className="border-gray-200 hover:shadow-md transition-shadow flex flex-col overflow-hidden">
-                <div className="h-40 bg-rose-50 flex items-center justify-center relative border-b border-gray-100">
-                  {res.video_url ? (
-                    <Video className="w-12 h-12 text-rose-400" />
-                  ) : (
-                    <FileText className="w-12 h-12 text-rose-400" />
-                  )}
-                  <Badge className="absolute top-3 left-3 bg-white text-rose-700 border border-rose-200 hover:bg-white text-xs">
-                    {catLabel}
-                  </Badge>
-                  {res.sport && (
-                    <Badge variant="secondary" className="absolute top-3 right-3 bg-teal-50 text-teal-700 border border-teal-100 hover:bg-teal-50 text-xs">
-                      {res.sport}
+              <Link key={res.id} to={`/training/${res.id}`} className="flex flex-col">
+                <Card className="border-gray-200 hover:shadow-md hover:border-rose-200 transition-all flex flex-col overflow-hidden h-full">
+                  <div className="h-40 bg-rose-50 flex items-center justify-center relative border-b border-gray-100">
+                    {res.video_url ? (
+                      <Video className="w-12 h-12 text-rose-400" />
+                    ) : (
+                      <FileText className="w-12 h-12 text-rose-400" />
+                    )}
+                    <Badge className="absolute top-3 left-3 bg-white text-rose-700 border border-rose-200 hover:bg-white text-xs">
+                      {catLabel}
                     </Badge>
-                  )}
-                </div>
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-base text-gray-900 font-bold leading-snug line-clamp-1">
-                    {res.title}
-                  </CardTitle>
-                  <CardDescription className="flex items-center gap-1.5 text-xs text-gray-500 pt-1">
-                    <User className="w-3.5 h-3.5" />
-                    <span>{res.author || 'SHAKTHI Expert'}</span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 space-y-3 flex-1 flex flex-col justify-between">
-                  <p className="text-xs text-gray-600 line-clamp-3">
-                    {res.content || 'Start learning this training program today.'}
-                  </p>
-                  <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-gray-400" />
-                      {res.duration_minutes ? `${res.duration_minutes} min` : '20 min'}
-                    </span>
-                    <Button size="sm" variant="outline" className="text-rose-600 hover:text-rose-700 h-8">
-                      {res.video_url ? 'Watch Video' : 'Read Guide'}
-                    </Button>
+                    {res.sport && (
+                      <Badge variant="secondary" className="absolute top-3 right-3 bg-teal-50 text-teal-700 border border-teal-100 hover:bg-teal-50 text-xs">
+                        {res.sport}
+                      </Badge>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
+                  <CardHeader className="p-4 pb-2">
+                    <CardTitle className="text-base text-gray-900 font-bold leading-snug line-clamp-1">
+                      {res.title}
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-1.5 text-xs text-gray-500 pt-1">
+                      <User className="w-3.5 h-3.5" />
+                      <span>{res.author || 'SHAKTHI Expert'}</span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 space-y-3 flex-1 flex flex-col justify-between">
+                    <p className="text-xs text-gray-600 line-clamp-3">
+                      {res.content || 'Start learning this training program today.'}
+                    </p>
+                    <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-gray-400" />
+                        {res.duration_minutes ? `${res.duration_minutes} min` : '20 min'}
+                      </span>
+                      <Button size="sm" variant="outline" className="text-rose-600 hover:text-rose-700 h-8">
+                        {res.video_url ? 'Watch Video' : 'Read Guide'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             );
           })}
         </div>

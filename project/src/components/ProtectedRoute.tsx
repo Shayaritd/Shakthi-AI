@@ -4,9 +4,10 @@ import { ReactNode } from 'react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
+  allowedRoles?: string[];
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
 
@@ -25,5 +26,23 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  if (allowedRoles && !allowedRoles.includes(profile.role)) {
+    switch (profile.role) {
+      case 'ATHLETE':
+      case 'SPONSOR':
+      case 'COLLEGE_REP':
+        return <Navigate to="/dashboard/athlete" replace />;
+      case 'MENTOR':
+        return <Navigate to="/dashboard/mentor" replace />;
+      case 'GUARDIAN':
+        return <Navigate to="/dashboard/guardian" replace />;
+      case 'ADMIN':
+        return <Navigate to="/dashboard/admin" replace />;
+      default:
+        return <Navigate to="/" replace />;
+    }
+  }
+
   return <>{children}</>;
 }
+

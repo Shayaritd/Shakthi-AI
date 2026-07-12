@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAthleteProfile, updateAthleteProfile, calculateProfileCompletion } from '@/services/api';
+import { getAthleteProfile, updateAthleteProfile, calculateProfileCompletion, getMentorshipRequests } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +46,14 @@ export default function AthleteProfilePage() {
     queryFn: () => (user ? getAthleteProfile(user.id) : null),
     enabled: !!user,
   });
+
+  const { data: mentorshipRequests = [] } = useQuery({
+    queryKey: ['mentorshipRequests', user?.id],
+    queryFn: () => (user ? getMentorshipRequests(user.id, 'athlete') : []),
+    enabled: !!user,
+  });
+
+  const hasApprovedMentor = mentorshipRequests.some((r) => r.status === 'APPROVED');
 
   const [formData, setFormData] = useState<Record<string, any>>({});
 
@@ -318,6 +326,25 @@ export default function AthleteProfilePage() {
       icon: CheckCircle,
       color: '',
       description: 'Get verified by the safety officer to unlock',
+      unlocked: false,
+    });
+  }
+
+  // 5. Safe Mentor Connected Badge
+  if (hasApprovedMentor) {
+    computedBadges.push({
+      name: 'Safe Mentor Connected',
+      icon: Shield,
+      color: 'bg-rose-50 text-rose-700 border-rose-200',
+      description: 'Connected with a verified mentor',
+      unlocked: true,
+    });
+  } else {
+    computedBadges.push({
+      name: 'Safe Mentor Connected',
+      icon: Shield,
+      color: '',
+      description: 'Connect with a verified mentor to unlock',
       unlocked: false,
     });
   }
