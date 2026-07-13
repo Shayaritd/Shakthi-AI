@@ -29,17 +29,20 @@ class MentorProfile(Base):
         index=True
     )
     expertise: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    experience_years: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    experience_years: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True, server_default="false")
     certifications: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
     languages: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
-    trust_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    trust_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False, server_default="0.0")
     availability: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     training_philosophy: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    code_of_conduct_accepted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    district: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    state: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    code_of_conduct_accepted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
     response_time: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    total_reviews: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    average_rating: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    total_reviews: Mapped[int] = mapped_column(Integer, default=0, nullable=False, server_default="0")
+    average_rating: Mapped[float] = mapped_column(Float, default=0.0, nullable=False, server_default="0.0")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

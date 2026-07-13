@@ -14,6 +14,9 @@ class MentorProfileBase(BaseModel):
     experience_years: int = Field(..., ge=0, le=50)
     availability: Optional[str] = Field(None, max_length=50)
     training_philosophy: Optional[str] = None
+    bio: Optional[str] = None
+    district: Optional[str] = Field(None, max_length=100)
+    state: Optional[str] = Field(None, max_length=100)
     response_time: Optional[str] = Field(None, max_length=50)
 
 
@@ -37,6 +40,9 @@ class MentorProfileUpdate(BaseModel):
     experience_years: Optional[int] = Field(None, ge=0, le=50)
     availability: Optional[str] = Field(None, max_length=50)
     training_philosophy: Optional[str] = None
+    bio: Optional[str] = None
+    district: Optional[str] = Field(None, max_length=100)
+    state: Optional[str] = Field(None, max_length=100)
     response_time: Optional[str] = Field(None, max_length=50)
     certifications: Optional[Dict[str, Any]] = None
     languages: Optional[List[str]] = None
@@ -54,6 +60,9 @@ class MentorProfileResponse(BaseModel):
     trust_score: float
     availability: Optional[str]
     training_philosophy: Optional[str]
+    bio: Optional[str] = None
+    district: Optional[str] = None
+    state: Optional[str] = None
     code_of_conduct_accepted: bool
     response_time: Optional[str]
     total_reviews: int

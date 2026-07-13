@@ -148,7 +148,7 @@ async def request_mentorship(
         select(MentorshipRequest).where(
             MentorshipRequest.athlete_id == current_user.id,
             MentorshipRequest.mentor_id == request_data.mentor_id,
-            MentorshipRequest.status.in_([RequestStatus.PENDING, RequestStatus.APPROVED])
+            MentorshipRequest.status.in_([RequestStatus.PENDING, RequestStatus.PENDING_GUARDIAN, RequestStatus.APPROVED])
         )
     )
     existing = result.scalar_one_or_none()

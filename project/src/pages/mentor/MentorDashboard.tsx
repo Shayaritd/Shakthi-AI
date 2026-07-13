@@ -149,43 +149,71 @@ export default function MentorDashboard() {
               {requests
                 .filter((r) => r.status === 'PENDING')
                 .slice(0, 5)
-                .map((req) => (
-                  <div key={req.id} className="p-4 rounded-lg border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-teal-700">
-                          {req.athlete?.full_name || 'Anonymous Athlete'}
-                        </span>
-                        <Badge variant="secondary" className="text-xs">
-                          {req.mode}
-                        </Badge>
+                .map((req) => {
+                  const age = req.athlete?.athlete_profile?.date_of_birth
+                    ? new Date().getFullYear() - new Date(req.athlete.athlete_profile.date_of_birth).getFullYear()
+                    : null;
+                  
+                  const isMinor = age !== null && age < 18;
+
+                  return (
+                    <div key={req.id} className="p-4 rounded-lg border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:shadow-sm transition-shadow">
+                      <div className="space-y-1.5 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-teal-700 text-base">
+                            {req.athlete?.full_name || 'Anonymous Athlete'}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {req.mode}
+                          </Badge>
+                          
+                          {/* Guardian Approval Status Indicator */}
+                          {isMinor ? (
+                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                              <Shield className="w-3 h-3 mr-1" />
+                              Guardian Approved ({req.athlete?.athlete_profile?.guardian_name})
+                            </Badge>
+                          ) : age !== null ? (
+                            <Badge className="bg-gray-100 text-gray-600 border-gray-200">
+                              Adult (Guardian Not Required)
+                            </Badge>
+                          ) : null}
+                        </div>
+
+                        {/* Athlete Profile Preview */}
+                        <div className="text-xs text-gray-500 bg-gray-50/50 p-2 rounded border border-gray-100 flex flex-wrap gap-4">
+                          <span><strong>Sport:</strong> {req.athlete?.athlete_profile?.sport || 'N/A'}</span>
+                          <span><strong>Level:</strong> {req.athlete?.athlete_profile?.level || 'N/A'}</span>
+                          {age !== null && <span><strong>Age:</strong> {age}</span>}
+                        </div>
+
+                        <p className="text-sm font-medium text-gray-800">Goal: {req.goal}</p>
+                        {req.message && (
+                          <p className="text-xs text-gray-500 bg-amber-50/30 p-2 rounded border italic">
+                            "{req.message}"
+                          </p>
+                        )}
                       </div>
-                      <p className="text-sm font-medium text-gray-700">Goal: {req.goal}</p>
-                      {req.message && (
-                        <p className="text-xs text-gray-500 bg-gray-50 p-2 rounded border italic">
-                          "{req.message}"
-                        </p>
-                      )}
+                      <div className="flex gap-2 w-full md:w-auto shrink-0">
+                        <Button
+                          size="sm"
+                          className="bg-teal-600 hover:bg-teal-700 text-white flex-1 md:flex-initial"
+                          onClick={() => handleRequestStatus(req.id, 'APPROVED', req.athlete_id)}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-rose-600 border-rose-200 hover:bg-rose-50 flex-1 md:flex-initial"
+                          onClick={() => handleRequestStatus(req.id, 'REJECTED', req.athlete_id)}
+                        >
+                          Reject
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2 w-full md:w-auto">
-                      <Button
-                        size="sm"
-                        className="bg-teal-600 hover:bg-teal-700 text-white flex-1 md:flex-initial"
-                        onClick={() => handleRequestStatus(req.id, 'APPROVED', req.athlete_id)}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-rose-600 border-rose-200 hover:bg-rose-50 flex-1 md:flex-initial"
-                        onClick={() => handleRequestStatus(req.id, 'REJECTED', req.athlete_id)}
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
@@ -223,8 +251,8 @@ export default function MentorDashboard() {
             <Users className="w-10 h-10 text-blue-600 mb-3" />
             <h3 className="font-medium">Profile</h3>
             <p className="text-sm text-gray-500 mt-1">Update your mentor profile</p>
-            <Button variant="outline" className="mt-4">
-              Edit Profile
+            <Button variant="outline" className="mt-4" asChild>
+              <Link to="/mentor/profile">Edit Profile</Link>
             </Button>
           </CardContent>
         </Card>

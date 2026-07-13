@@ -44,9 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(data as Profile | null);
         let onboarded = false;
         if (data.role === 'ATHLETE') {
-          onboarded = Array.isArray(data.athlete_profiles) && data.athlete_profiles.length > 0;
+          onboarded = Array.isArray(data.athlete_profiles) 
+            ? data.athlete_profiles.length > 0 
+            : !!data.athlete_profiles;
         } else if (data.role === 'MENTOR') {
-          onboarded = Array.isArray(data.mentor_profiles) && data.mentor_profiles.length > 0;
+          onboarded = Array.isArray(data.mentor_profiles) 
+            ? data.mentor_profiles.length > 0 
+            : !!data.mentor_profiles;
         } else if (data.role === 'GUARDIAN') {
           onboarded = !!data.phone;
         } else {

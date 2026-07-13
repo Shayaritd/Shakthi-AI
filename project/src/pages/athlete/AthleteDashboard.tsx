@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { getAthleteProfile, getMentors, getScholarships, getNotifications, getOpportunities, getMentorshipRequests } from '@/services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getAthleteProfile, getMentors, getScholarships, getNotifications, getOpportunities, getMentorshipRequests, updateMentorshipRequest } from '@/services/api';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -78,6 +79,18 @@ export default function AthleteDashboard() {
     queryKey: ['mentorshipRequests', user?.id],
     queryFn: () => (user ? getMentorshipRequests(user.id, 'athlete') : []),
     enabled: !!user,
+  });
+
+  const queryClient = useQueryClient();
+  const cancelMutation = useMutation({
+    mutationFn: (requestId: string) => updateMentorshipRequest(requestId, { status: 'CANCELLED' as any }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mentorshipRequests', user?.id] });
+      toast.success('Mentorship request cancelled.');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to cancel request.');
+    }
   });
 
   const hasApprovedMentor = mentorshipRequests.some(r => r.status === 'APPROVED');
@@ -285,7 +298,9 @@ export default function AthleteDashboard() {
               </Badge>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-gray-900">3</span>
+              <span className="text-3xl font-extrabold text-gray-900">
+                {mentorshipRequests.filter((r: any) => r.status === 'APPROVED').length}
+              </span>
               <span className="text-xs text-gray-500 font-medium">Coaches</span>
             </div>
             <p className="text-xs text-gray-500">Direct channels for safety-audited coaching mentorship.</p>
@@ -366,6 +381,79 @@ export default function AthleteDashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* Mentorship Requests Status & Chats */}
+          {mentorshipRequests.length > 0 && (
+            <Card className="border-gray-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-bold">Your Mentorship Requests</CardTitle>
+                <CardDescription>Status of your requests to coaches and open chats</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {mentorshipRequests.map((req: any) => {
+                  let statusBadge = (
+                    <Badge variant="outline" className="border-amber-200 text-amber-700 bg-amber-50">
+                      {req.status === 'PENDING_GUARDIAN' ? 'Awaiting Guardian' : 'Awaiting Coach'}
+                    </Badge>
+                  );
+                  
+                  if (req.status === 'APPROVED') {
+                    statusBadge = (
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
+                        Active
+                      </Badge>
+                    );
+                  } else if (req.status === 'REJECTED') {
+                    const isGuardianReject = !req.guardian_approved && req.guardian_id;
+                    statusBadge = (
+                      <Badge variant="destructive" className="bg-rose-100 text-rose-800 border-rose-200">
+                        {isGuardianReject ? 'Declined by Guardian' : 'Declined'}
+                      </Badge>
+                    );
+                  } else if (req.status === 'CANCELLED') {
+                    statusBadge = (
+                      <Badge variant="secondary" className="bg-gray-100 text-gray-800 border-gray-200">
+                        Cancelled
+                      </Badge>
+                    );
+                  }
+
+                  return (
+                    <div key={req.id} className="p-4 rounded-xl border border-gray-100 bg-gray-50/30 flex items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <h4 className="font-semibold text-gray-900 text-sm">
+                          {req.mentor?.full_name || 'Coach'}
+                        </h4>
+                        <p className="text-xs text-gray-505">Goal: {req.goal}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {statusBadge}
+                        {req.status === 'APPROVED' && (
+                          <Button size="sm" asChild className="bg-teal-600 hover:bg-teal-700 shrink-0">
+                            <Link to="/chat">
+                              <MessageSquare className="w-3.5 h-3.5 mr-1" />
+                              Chat
+                            </Link>
+                          </Button>
+                        )}
+                        {(req.status === 'PENDING' || req.status === 'PENDING_GUARDIAN') && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 shrink-0"
+                            onClick={() => cancelMutation.mutate(req.id)}
+                            disabled={cancelMutation.isPending}
+                          >
+                            {cancelMutation.isPending && cancelMutation.variables === req.id ? 'Cancelling...' : 'Cancel'}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Recommended Mentors */}
           <Card className="border-gray-200">

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { toast } from 'sonner';
 import {
   ChevronLeft,
   Shield,
@@ -53,6 +54,9 @@ export default function RequestMentorshipPage() {
       }),
     onSuccess: () => {
       setSubmitted(true);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to submit mentorship request. Please try again.');
     },
   });
 
@@ -148,6 +152,16 @@ export default function RequestMentorshipPage() {
           mentorship before it begins.
         </AlertDescription>
       </Alert>
+
+      {mutation.isError && (
+        <Alert variant="destructive">
+          <AlertCircle className="w-4 h-4" />
+          <AlertTitle>Error submitting request</AlertTitle>
+          <AlertDescription>
+            {mutation.error instanceof Error ? mutation.error.message : 'An error occurred. You may already have an active request.'}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Request Form */}
       <Card>

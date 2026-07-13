@@ -211,14 +211,13 @@ export default function SignupPage() {
             </CardHeader>
 
             <CardContent className="space-y-6">
-              {error && (
+              {error ? (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
-              )}
+              ) : null}
 
-              {/* Role Selection */}
               <div className="space-y-3">
                 <Label>I am a...</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -247,7 +246,6 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              {/* Registration Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>

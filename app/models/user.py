@@ -57,6 +57,7 @@ class User(Base):
     athlete_profile: Mapped[Optional["AthleteProfile"]] = relationship(
         "AthleteProfile",
         back_populates="user",
+        foreign_keys="[AthleteProfile.user_id]",
         uselist=False,
         lazy="selectin"
     )

@@ -247,13 +247,17 @@ export default function ChatPage() {
             <CardHeader className="p-4 border-b flex flex-row items-center gap-3">
               <Avatar className="w-10 h-10">
                 <AvatarFallback className="bg-teal-100 text-teal-700">
-                  {otherUser?.full_name?.charAt(0) || 'C'}
+                  {profile?.role === 'GUARDIAN' ? 'G' : (otherUser?.full_name?.charAt(0) || 'C')}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-medium">{otherUser?.full_name || 'Conversation'}</p>
+                <p className="font-medium font-semibold text-gray-900">
+                  {profile?.role === 'GUARDIAN'
+                    ? `${activeThreadData?.athlete?.full_name || 'Athlete'} & ${activeThreadData?.mentor?.full_name || 'Coach'}`
+                    : (otherUser?.full_name || 'Conversation')}
+                </p>
                 <p className="text-xs text-gray-500">
-                  Guardian visible for safety
+                  {profile?.role === 'GUARDIAN' ? 'Guardian safety monitoring active' : 'Guardian visible for safety'}
                 </p>
               </div>
               <div className="ml-auto flex gap-2">
@@ -422,19 +426,26 @@ export default function ChatPage() {
               </div>
             </div>
 
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Type a message..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                />
-                <Button onClick={handleSend} className="bg-teal-600 hover:bg-teal-700">
-                  <Send className="w-4 h-4" />
-                </Button>
+            {profile?.role === 'GUARDIAN' ? (
+              <div className="p-4 border-t bg-gray-50 text-gray-650 text-sm flex items-center justify-center gap-2">
+                <Shield className="w-4 h-4 text-teal-600 shrink-0" />
+                <span className="font-medium text-gray-600">Guardian Monitoring Mode: You are viewing this chat in read-only mode for safety monitoring.</span>
               </div>
-            </div>
+            ) : (
+              <div className="p-4 border-t">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Type a message..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                  />
+                  <Button onClick={handleSend} className="bg-teal-600 hover:bg-teal-700">
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-500 p-8">

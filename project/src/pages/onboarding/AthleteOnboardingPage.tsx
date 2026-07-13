@@ -224,13 +224,12 @@ export default function AthleteOnboardingPage() {
             </CardHeader>
 
             <CardContent className="space-y-6">
-              {error && (
+              {error ? (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
-              )}
+              ) : null}
 
-              {/* Step 1: Basic Info */}
               {currentStep === 0 && (
                 <div className="space-y-4">
                   <div className="space-y-2">

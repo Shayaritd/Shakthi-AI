@@ -136,6 +136,9 @@ async def create_seed_data(db: AsyncSession):
             trust_score=4.8,
             availability="Full-time",
             training_philosophy="Discipline and dedication lead to success",
+            bio="Former national-level Kabaddi champion with 10 years of coaching experience. Specializes in rural athlete development.",
+            district="Pune",
+            state="Maharashtra",
             code_of_conduct_accepted=True,
             total_reviews=25,
             average_rating=4.8
@@ -150,6 +153,9 @@ async def create_seed_data(db: AsyncSession):
             trust_score=4.9,
             availability="Part-time",
             training_philosophy="Mental strength complements physical ability",
+            bio="SAI certified coach with 8 years coaching national-level sprinters and long-distance runners.",
+            district="Bengaluru Rural",
+            state="Karnataka",
             code_of_conduct_accepted=True,
             total_reviews=42,
             average_rating=4.9

@@ -567,6 +567,13 @@ export async function getSavedScholarships(userId: string): Promise<SavedScholar
 }
 
 // Mentorship Request APIs
+export function needsGuardianApproval(dateOfBirthStr: string | null): boolean {
+  if (!dateOfBirthStr) return false;
+  const dateOfBirth = new Date(dateOfBirthStr);
+  const age = new Date().getFullYear() - dateOfBirth.getFullYear();
+  return age < 18;
+}
+
 export async function createMentorshipRequest(request: {
   athleteId: string;
   mentorId: string;
@@ -574,14 +581,69 @@ export async function createMentorshipRequest(request: {
   mode: string;
   message?: string;
 }): Promise<MentorshipRequest> {
+  // Check for existing active request in DB
+  try {
+    const { data: existingActive, error: checkError } = await supabase
+      .from('mentorship_requests')
+      .select('id')
+      .eq('athlete_id', request.athleteId)
+      .eq('mentor_id', request.mentorId)
+      .in('status', ['PENDING', 'PENDING_GUARDIAN', 'APPROVED']);
+
+    if (checkError) throw checkError;
+    if (existingActive && existingActive.length > 0) {
+      throw new Error("Active mentorship request already exists");
+    }
+  } catch (err: any) {
+    if (err.message === "Active mentorship request already exists") {
+      throw err;
+    }
+    console.warn("Failed to check active requests in DB, checking local storage fallback...");
+  }
+
+  // Check for existing active request in local storage
+  const localReqs = getLocal<MentorshipRequest>(LOCAL_STORAGE_KEYS.REQUESTS);
+  const existingLocal = localReqs.find(
+    (r) =>
+      r.athlete_id === request.athleteId &&
+      r.mentor_id === request.mentorId &&
+      ['PENDING', 'PENDING_GUARDIAN', 'APPROVED'].includes(r.status)
+  );
+  if (existingLocal) {
+    throw new Error("Active mentorship request already exists");
+  }
+
+  // Fetch athlete profile to check age and get guardian details
+  let isUnder18 = false;
+  let guardianId: string | null = null;
+  try {
+    const { data: athleteProfile } = await supabase
+      .from('athlete_profiles')
+      .select('date_of_birth, guardian_user_id')
+      .eq('user_id', request.athleteId)
+      .maybeSingle();
+
+    if (athleteProfile && athleteProfile.date_of_birth) {
+      isUnder18 = needsGuardianApproval(athleteProfile.date_of_birth);
+      if (isUnder18) {
+        guardianId = athleteProfile.guardian_user_id;
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to fetch athlete profile to determine age:", err);
+  }
+
+  const initialStatus = isUnder18 ? 'PENDING_GUARDIAN' : 'PENDING';
+
   const newReq: MentorshipRequest = {
     id: crypto.randomUUID?.() || Math.random().toString(36).substring(2),
     athlete_id: request.athleteId,
     mentor_id: request.mentorId,
+    guardian_id: guardianId || undefined,
     goal: request.goal,
     mode: request.mode as any,
     message: request.message || undefined,
-    status: 'PENDING',
+    status: initialStatus as any,
     guardian_approved: false,
     guardian_approved_at: undefined,
     created_at: new Date().toISOString(),
@@ -594,15 +656,52 @@ export async function createMentorshipRequest(request: {
       .insert({
         athlete_id: request.athleteId,
         mentor_id: request.mentorId,
+        guardian_id: guardianId,
         goal: request.goal,
         mode: request.mode,
         message: request.message,
-        status: 'PENDING',
+        status: initialStatus,
       })
       .select()
       .single();
 
     if (error) throw error;
+
+    if (data) {
+      // Trigger notification for the appropriate role
+      if (initialStatus === 'PENDING_GUARDIAN' && guardianId) {
+        try {
+          const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', request.athleteId).maybeSingle();
+          const athleteName = profile?.full_name || "Your child";
+          await createNotification({
+            userId: guardianId,
+            type: 'MENTORSHIP',
+            title: 'Mentorship Approval Required',
+            message: `${athleteName} has requested mentorship. Your approval is required.`,
+            actionUrl: '/dashboard/guardian',
+            actionText: 'Review Request'
+          });
+        } catch (nErr) {
+          console.warn("Failed to send guardian notification:", nErr);
+        }
+      } else {
+        try {
+          const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', request.athleteId).maybeSingle();
+          const athleteName = profile?.full_name || "An athlete";
+          await createNotification({
+            userId: request.mentorId,
+            type: 'MENTORSHIP',
+            title: 'New Mentorship Request',
+            message: `${athleteName} has requested you as their mentor.`,
+            actionUrl: '/dashboard/mentor',
+            actionText: 'Review Request'
+          });
+        } catch (nErr) {
+          console.warn("Failed to send mentor notification:", nErr);
+        }
+      }
+    }
+
     return data as MentorshipRequest;
   } catch (err) {
     console.warn("createMentorshipRequest DB insert failed, saving to localStorage:", err);
@@ -623,7 +722,12 @@ export async function getMentorshipRequests(
       .from('mentorship_requests')
       .select(
         ` *,
-        athlete:profiles!athlete_id(id, full_name, role),
+        athlete:profiles!athlete_id(
+          id, 
+          full_name, 
+          role,
+          athlete_profiles(sport, level, date_of_birth, guardian_name)
+        ),
         mentor:profiles!mentor_id(id, full_name, role)
       `
       )
@@ -632,14 +736,39 @@ export async function getMentorshipRequests(
     if (role === 'athlete') {
       query = query.eq('athlete_id', userId);
     } else if (role === 'mentor') {
-      query = query.eq('mentor_id', userId);
+      query = query.eq('mentor_id', userId).neq('status', 'PENDING_GUARDIAN');
     } else if (role === 'guardian') {
-      query = query.eq('guardian_approved', false);
+      query = query.eq('guardian_id', userId);
     }
 
     const { data, error } = await query;
     if (error) throw error;
-    dbReqs = data as MentorshipRequest[];
+
+    dbReqs = (data as any[]).map(r => {
+      const athleteProfile = r.athlete?.athlete_profiles?.[0] || r.athlete?.athlete_profile || null;
+      return {
+        ...r,
+        athlete: {
+          ...r.athlete,
+          athlete_profile: athleteProfile
+        }
+      };
+    }) as MentorshipRequest[];
+
+    // Clean up local storage from corresponding requests that already exist in DB
+    if (data && data.length > 0) {
+      const localReqs = getLocal<MentorshipRequest>(LOCAL_STORAGE_KEYS.REQUESTS);
+      const updatedLocal = localReqs.filter(lr => {
+        return !data.some(dr =>
+          dr.athlete_id === lr.athlete_id &&
+          dr.mentor_id === lr.mentor_id &&
+          dr.goal === lr.goal
+        );
+      });
+      if (updatedLocal.length !== localReqs.length) {
+        setLocal(LOCAL_STORAGE_KEYS.REQUESTS, updatedLocal);
+      }
+    }
   } catch (err) {
     console.warn("getMentorshipRequests DB fetch failed, using fallback:", err);
   }
@@ -650,9 +779,9 @@ export async function getMentorshipRequests(
   if (role === 'athlete') {
     filteredLocal = localReqs.filter(r => r.athlete_id === userId);
   } else if (role === 'mentor') {
-    filteredLocal = localReqs.filter(r => r.mentor_id === userId);
+    filteredLocal = localReqs.filter(r => r.mentor_id === userId && r.status !== 'PENDING_GUARDIAN');
   } else if (role === 'guardian') {
-    filteredLocal = localReqs.filter(r => !r.guardian_approved);
+    filteredLocal = localReqs.filter(r => r.guardian_id === userId);
   }
 
   const populatedLocal = filteredLocal.map(r => ({
@@ -663,7 +792,13 @@ export async function getMentorshipRequests(
 
   const combined = [...dbReqs];
   for (const lr of populatedLocal) {
-    if (!combined.some(dr => dr.id === lr.id)) {
+    const isDuplicate = combined.some(
+      (dr) =>
+        dr.athlete_id === lr.athlete_id &&
+        dr.mentor_id === lr.mentor_id &&
+        dr.goal === lr.goal
+    );
+    if (!isDuplicate && !combined.some(dr => dr.id === lr.id)) {
       combined.push(lr as any);
     }
   }
@@ -675,15 +810,109 @@ export async function updateMentorshipRequest(
   requestId: string,
   updates: Partial<MentorshipRequest>
 ): Promise<MentorshipRequest> {
+  const finalUpdates = { ...updates };
+  if (updates.guardian_approved === true) {
+    finalUpdates.status = 'PENDING';
+    finalUpdates.guardian_approved_at = new Date().toISOString() as any;
+  }
+
+  // Pre-fetch current request details to get names and user IDs for notifications
+  let currentReq: any = null;
+  try {
+    const { data } = await supabase
+      .from('mentorship_requests')
+      .select('*, athlete:profiles!athlete_id(full_name), mentor:profiles!mentor_id(full_name)')
+      .eq('id', requestId)
+      .maybeSingle();
+    currentReq = data;
+  } catch (err) {
+    console.warn("Failed to pre-fetch request details:", err);
+  }
+
   try {
     const { data, error } = await supabase
       .from('mentorship_requests')
-      .update(updates)
+      .update(finalUpdates)
       .eq('id', requestId)
       .select()
       .single();
 
     if (error) throw error;
+
+    if (data && currentReq) {
+      const athleteName = currentReq.athlete?.full_name || "An athlete";
+      const mentorName = currentReq.mentor?.full_name || "A coach";
+
+      // 1. Guardian approved request -> Notify Athlete and Mentor
+      if (updates.guardian_approved === true) {
+        try {
+          await createNotification({
+            userId: data.athlete_id,
+            type: 'MENTORSHIP',
+            title: 'Guardian Approved Request',
+            message: `Your guardian has approved your mentorship request to ${mentorName}.`,
+            actionUrl: '/dashboard/athlete',
+            actionText: 'View Dashboard'
+          });
+          await createNotification({
+            userId: data.mentor_id,
+            type: 'MENTORSHIP',
+            title: 'New Mentorship Request',
+            message: `${athleteName} has requested you as their mentor (guardian approved).`,
+            actionUrl: '/dashboard/mentor',
+            actionText: 'Review Request'
+          });
+        } catch (nErr) {
+          console.warn("Failed to send notification for guardian approval:", nErr);
+        }
+      }
+      
+      // 2. Guardian or Mentor rejected request
+      else if (updates.status === 'REJECTED') {
+        try {
+          const isGuardianReject = !currentReq.guardian_approved && currentReq.guardian_id;
+          await createNotification({
+            userId: data.athlete_id,
+            type: 'MENTORSHIP',
+            title: 'Request Declined',
+            message: isGuardianReject 
+              ? `Your guardian has declined your mentorship request to ${mentorName}.`
+              : `${mentorName} has declined your mentorship request.`,
+            actionUrl: '/dashboard/athlete',
+            actionText: 'View Dashboard'
+          });
+        } catch (nErr) {
+          console.warn("Failed to send notification for rejection:", nErr);
+        }
+      }
+
+      // 3. Mentor accepted request
+      else if (updates.status === 'APPROVED') {
+        try {
+          await createNotification({
+            userId: data.athlete_id,
+            type: 'MENTORSHIP',
+            title: 'Mentorship Connected!',
+            message: `${mentorName} has accepted your mentorship request. You can now start chatting!`,
+            actionUrl: '/chat',
+            actionText: 'Open Chat'
+          });
+          if (data.guardian_id) {
+            await createNotification({
+              userId: data.guardian_id,
+              type: 'MENTORSHIP',
+              title: 'Mentorship Connected',
+              message: `${mentorName} has accepted ${athleteName}'s mentorship request.`,
+              actionUrl: '/dashboard/guardian',
+              actionText: 'View Dashboard'
+            });
+          }
+        } catch (nErr) {
+          console.warn("Failed to send notification for mentor acceptance:", nErr);
+        }
+      }
+    }
+
     return data as MentorshipRequest;
   } catch (err) {
     console.warn("updateMentorshipRequest DB update failed, updating in localStorage:", err);
@@ -694,7 +923,7 @@ export async function updateMentorshipRequest(
     if (index !== -1) {
       updatedReq = {
         ...localReqs[index],
-        ...updates,
+        ...finalUpdates,
         updated_at: new Date().toISOString()
       };
       localReqs[index] = updatedReq;
@@ -710,7 +939,7 @@ export async function updateMentorshipRequest(
         guardian_approved_at: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        ...updates
+        ...finalUpdates
       } as any;
       localReqs.push(updatedReq);
     }
@@ -1043,27 +1272,63 @@ export async function getMentorReviews(mentorId: string): Promise<MentorReview[]
 // Chat APIs
 export async function getChatThreads(userId: string): Promise<ChatThread[]> {
   let dbThreads: ChatThread[] = [];
-  try {
-    const { data, error } = await supabase
-      .from('chat_threads')
-      .select(
-        ` *,
-        athlete:profiles!athlete_id(id, full_name, avatar_url),
-        mentor:profiles!mentor_id(id, full_name, avatar_url)
-      `
-      )
-      .or(`athlete_id.eq.${userId},mentor_id.eq.${userId}`)
-      .eq('is_active', true)
-      .order('last_message_at', { ascending: false });
+  let isGuardian = false;
+  let linkedAthleteIds: string[] = [];
 
-    if (error) throw error;
-    dbThreads = data as ChatThread[];
+  try {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .maybeSingle();
+
+    isGuardian = profileData?.role === 'GUARDIAN';
+
+    if (isGuardian) {
+      const { data: athletes } = await supabase
+        .from('athlete_profiles')
+        .select('user_id')
+        .eq('guardian_user_id', userId);
+      linkedAthleteIds = athletes?.map(a => a.user_id) || [];
+    }
+  } catch (e) {
+    console.warn("Failed to check role in getChatThreads:", e);
+  }
+
+  try {
+    if (isGuardian && linkedAthleteIds.length === 0) {
+      dbThreads = [];
+    } else {
+      let query = supabase
+        .from('chat_threads')
+        .select(
+          ` *,
+          athlete:profiles!athlete_id(id, full_name, avatar_url),
+          mentor:profiles!mentor_id(id, full_name, avatar_url)
+        `
+        );
+
+      if (isGuardian) {
+        query = query.in('athlete_id', linkedAthleteIds);
+      } else {
+        query = query.or(`athlete_id.eq.${userId},mentor_id.eq.${userId}`);
+      }
+
+      const { data, error } = await query
+        .eq('is_active', true)
+        .order('last_message_at', { ascending: false });
+
+      if (error) throw error;
+      dbThreads = data as ChatThread[];
+    }
   } catch (err) {
     console.warn("getChatThreads DB query failed, using fallback:", err);
   }
 
   const localThreads = getLocal<ChatThread>(LOCAL_STORAGE_KEYS.THREADS);
-  const filteredLocal = localThreads.filter(t => t.athlete_id === userId || t.mentor_id === userId);
+  const filteredLocal = isGuardian
+    ? localThreads.filter(t => linkedAthleteIds.includes(t.athlete_id))
+    : localThreads.filter(t => t.athlete_id === userId || t.mentor_id === userId);
   
   const populatedLocal = filteredLocal.map(t => ({
     ...t,
@@ -1083,6 +1348,32 @@ export async function getChatThreads(userId: string): Promise<ChatThread[]> {
     const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
     return timeB - timeA;
   });
+}
+
+export async function createNotification(notification: {
+  userId: string;
+  type: 'MENTORSHIP' | 'SCHOLARSHIP' | 'REPORT' | 'VERIFICATION' | 'REWARD' | 'ADMIN' | 'CHAT' | 'REMINDER';
+  title: string;
+  message: string;
+  actionUrl?: string;
+  actionText?: string;
+}): Promise<Notification> {
+  const { data, error } = await supabase
+    .from('notifications')
+    .insert({
+      user_id: notification.userId,
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      action_url: notification.actionUrl || null,
+      action_text: notification.actionText || null,
+      read: false,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Notification;
 }
 
 export async function getOrCreateChatThread(

@@ -1,0 +1,116 @@
+=== Function: notify_mentorship_approval ===
+
+            DECLARE
+              athlete_name text;
+              mentor_name text;
+            BEGIN
+              SELECT full_name INTO athlete_name FROM public.profiles WHERE id = NEW.athlete_id;
+              SELECT full_name INTO mentor_name FROM public.profiles WHERE id = NEW.mentor_id;
+              
+              -- When Guardian approves (PENDING_GUARDIAN -> PENDING)
+              IF NEW.status = 'PENDING' AND OLD.status = 'PENDING_GUARDIAN' THEN
+                -- Notify Mentor
+                INSERT INTO public.notifications (user_id, type, title, message, read, action_url)
+                VALUES (
+                  NEW.mentor_id,
+                  'MENTORSHIP',
+                  'New Mentorship Request',
+                  COALESCE(athlete_name, 'An Athlete') || ' has requested you as a mentor.',
+                  false,
+                  '/dashboard/mentor'
+                );
+              END IF;
+              
+              -- When Mentor approves (PENDING -> APPROVED)
+              IF NEW.status = 'APPROVED' AND OLD.status = 'PENDING' THEN
+                -- Notify Athlete
+                INSERT INTO public.notifications (user_id, type, title, message, read, action_url)
+                VALUES (
+                  NEW.athlete_id,
+                  'MENTORSHIP',
+                  'Mentorship Request Accepted! 🎉',
+                  COALESCE(mentor_name, 'Your mentor') || ' has approved your mentorship request. Start chatting now!',
+                  false,
+                  '/chat'
+                );
+              END IF;
+              
+              -- When Mentor rejects
+              IF NEW.status = 'REJECTED' AND OLD.status = 'PENDING' THEN
+                -- Notify Athlete
+                INSERT INTO public.notifications (user_id, type, title, message, read, action_url)
+                VALUES (
+                  NEW.athlete_id,
+                  'MENTORSHIP',
+                  'Mentorship Request Declined',
+                  COALESCE(mentor_name, 'Your mentor') || ' has declined your mentorship request.',
+                  false,
+                  '/dashboard'
+                );
+              END IF;
+              
+              RETURN NEW;
+            END;
+            
+
+=== Function: notify_mentorship_request ===
+
+            DECLARE
+              athlete_name text;
+              mentor_name text;
+            BEGIN
+              SELECT full_name INTO athlete_name FROM public.profiles WHERE id = NEW.athlete_id;
+              SELECT full_name INTO mentor_name FROM public.profiles WHERE id = NEW.mentor_id;
+              
+              IF NEW.status = 'PENDING_GUARDIAN' THEN
+                -- Notify Guardian
+                IF NEW.guardian_id IS NOT NULL THEN
+                  INSERT INTO public.notifications (user_id, type, title, message, read, action_url)
+                  VALUES (
+                    NEW.guardian_id,
+                    'MENTORSHIP',
+                    'Mentorship Request Needs Your Approval',
+                    COALESCE(athlete_name, 'An Athlete') || ' has requested mentorship from ' || COALESCE(mentor_name, 'a Coach') || '. Please review and approve.',
+                    false,
+                    '/dashboard'
+                  );
+                END IF;
+                
+                -- Notify Athlete
+                INSERT INTO public.notifications (user_id, type, title, message, read, action_url)
+                VALUES (
+                  NEW.athlete_id,
+                  'MENTORSHIP',
+                  'Mentorship Request Sent',
+                  'Your request to ' || COALESCE(mentor_name, 'the Coach') || ' has been sent!',
+                  false,
+                  '/dashboard'
+                );
+              ELSIF NEW.status = 'PENDING' THEN
+                -- Notify Mentor
+                INSERT INTO public.notifications (user_id, type, title, message, read, action_url)
+                VALUES (
+                  NEW.mentor_id,
+                  'MENTORSHIP',
+                  'New Mentorship Request',
+                  COALESCE(athlete_name, 'An Athlete') || ' has requested you as a mentor.',
+                  false,
+                  '/dashboard/mentor'
+                );
+                
+                -- Notify Athlete
+                INSERT INTO public.notifications (user_id, type, title, message, read, action_url)
+                VALUES (
+                  NEW.athlete_id,
+                  'MENTORSHIP',
+                  'Mentorship Request Sent',
+                  'Your request to ' || COALESCE(mentor_name, 'the Coach') || ' has been sent!',
+                  false,
+                  '/dashboard'
+                );
+              END IF;
+              
+              RETURN NEW;
+            END;
+            
+

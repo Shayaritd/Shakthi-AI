@@ -14,6 +14,7 @@ import GuardianOnboardingPage from '@/pages/onboarding/GuardianOnboardingPage';
 import AthleteDashboard from '@/pages/athlete/AthleteDashboard';
 import MentorDashboard from '@/pages/mentor/MentorDashboard';
 import MyAthletesPage from '@/pages/mentor/MyAthletesPage';
+import MentorProfilePage from '@/pages/mentor/MentorProfilePage';
 import GuardianDashboard from '@/pages/guardian/GuardianDashboard';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import MentorDiscoveryPage from '@/pages/mentors/MentorDiscoveryPage';
@@ -215,6 +216,16 @@ function App() {
                   <ProtectedRoute allowedRoles={['MENTOR']}>
                     <Layout>
                       <MyAthletesPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/mentor/profile"
+                element={
+                  <ProtectedRoute allowedRoles={['MENTOR']}>
+                    <Layout>
+                      <MentorProfilePage />
                     </Layout>
                   </ProtectedRoute>
                 }
