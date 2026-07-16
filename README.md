@@ -104,34 +104,60 @@ text
 
 ---
 
-## 🏗️ Architecture Overview
-┌─────────────────────────────────────────────────────────────────┐
-│ USER INTERFACE (React) │
-├─────────────────────────────────────────────────────────────────┤
-│ Athlete Dashboard | Mentor Dashboard | Guardian Dashboard │
-│ Chat System | Notifications | Safety Center │
-├─────────────────────────────────────────────────────────────────┤
-│ API GATEWAY (FastAPI) │
-├─────────────────────────────────────────────────────────────────┤
-│ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ │
-│ │ Auth (JWT) │ │ RAG Pipeline│ │ Real-time │ │
-│ └──────────────┘ └──────────────┘ └──────────────┘ │
-├─────────────────────────────────────────────────────────────────┤
-│ DATABASE (Supabase/PostgreSQL) │
-├─────────────────────────────────────────────────────────────────┤
-│ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ │
-│ │ Profiles │ │ Athletes │ │ Mentors │ │
-│ │ Scholarships│ │ Colleges │ │ Chat │ │
-│ └──────────────┘ └──────────────┘ └──────────────┘ │
-├─────────────────────────────────────────────────────────────────┤
-│ AI SERVICES │
-├─────────────────────────────────────────────────────────────────┤
-│ Gemini ───► OpenAI ───► Groq (Automatic Failover) │
-│ pgvector ───► Semantic Search ───► Document Chunking │
-└─────────────────────────────────────────────────────────────────┘
+## 🏗️ System Architecture
 
-text
-
+```text
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                           CLIENT APPLICATION (React)                         │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Athlete │ Mentor │ Guardian │ Coach │ Sponsor │ Admin │ Safety Officer       │
+│                                                                              │
+│ • Dashboard    • AI Chat    • Scholarships    • Colleges                    │
+│ • Safety Reporting    • Notifications    • Profile Management               │
+└───────────────────────────────┬──────────────────────────────────────────────┘
+                                │
+                          HTTPS / REST APIs
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          FASTAPI BACKEND (API Layer)                         │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Authentication (JWT) │ RBAC │ Request Validation │ Rate Limiting            │
+│ REST APIs │ Dependency Injection │ Business Logic │ Background Tasks         │
+└───────────────┬──────────────────────┬─────────────────────────┬─────────────┘
+                │                      │                         │
+                ▼                      ▼                         ▼
+      PostgreSQL Services        AI/RAG Service          Redis + Celery
+                │                      │                  Cache & Background Jobs
+                │                      │
+                ▼                      ▼
+┌──────────────────────────┐   ┌──────────────────────────────────────────────┐
+│ PostgreSQL / Supabase    │   │             AI Provider Router               │
+├──────────────────────────┤   ├──────────────────────────────────────────────┤
+│ Users                    │   │ Google Gemini                               │
+│ Athletes                 │   │ OpenAI                                      │
+│ Mentors                  │   │ Groq                                        │
+│ Scholarships             │   │ Automatic Provider Failover                 │
+│ Colleges                 │   └──────────────────────┬───────────────────────┘
+│ Chat History             │                          │
+│ Safety Reports           │                          ▼
+│ Documents                │              Prompt Engineering
+│ Vector Embeddings        │                          │
+└──────────────────────────┘                          ▼
+                                           Retrieval-Augmented Generation
+                                                      │
+                                                      ▼
+                                         Semantic Search (pgvector)
+                                                      │
+                                                      ▼
+                                           Relevant Document Chunks
+                                                      │
+                                                      ▼
+                                              AI Generated Response
+                                                      │
+                                                      ▼
+                                               Returned to Frontend
+```
 ### RAG Pipeline Flow
 User Query
 │
