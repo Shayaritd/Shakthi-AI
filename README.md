@@ -17,7 +17,7 @@
 - [What is SHAKTHI.AI?](#-what-is-shakthiai)
 - [Key Features](#-key-features)
 - [Tech Stack](#-tech-stack)
-- [Architecture Overview](#-architecture-overview)
+- [Architecture Overview](#-System Architecture)
 - [Database Schema](#-database-schema)
 - [Quick Start](#-quick-start)
 - [Test Credentials](#-test-credentials)
