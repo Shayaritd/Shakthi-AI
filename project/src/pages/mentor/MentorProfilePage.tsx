@@ -81,27 +81,28 @@ export default function MentorProfilePage() {
 
   const handleSave = () => {
     // Basic validations
-    if (!formData.expertise.trim()) {
+    const expertiseStr = formData.expertise || '';
+    if (!expertiseStr.trim()) {
       toast.error('Expertise / Sports cannot be empty.');
       return;
     }
 
     const certificationsObj = {
-      level: formData.certifications_level,
+      level: formData.certifications_level || 'National',
       certifications: formData.certifications_list
         ? formData.certifications_list.split(',').map((c: string) => c.trim()).filter(Boolean)
         : [],
     };
 
     const updates = {
-      expertise: formData.expertise.split(',').map((s: string) => s.trim()).filter(Boolean),
+      expertise: expertiseStr.split(',').map((s: string) => s.trim()).filter(Boolean),
       experience_years: parseInt(formData.experience_years) || 0,
-      bio: formData.bio,
-      languages: formData.languages.split(',').map((s: string) => s.trim()).filter(Boolean),
-      availability: formData.availability.split(',').map((s: string) => s.trim()).filter(Boolean),
-      training_philosophy: formData.training_philosophy,
-      district: formData.district,
-      state: formData.state,
+      bio: formData.bio || '',
+      languages: (formData.languages || '').split(',').map((s: string) => s.trim()).filter(Boolean),
+      availability: (formData.availability || '').split(',').map((s: string) => s.trim()).filter(Boolean),
+      training_philosophy: formData.training_philosophy || '',
+      district: formData.district || '',
+      state: formData.state || '',
       certifications: certificationsObj,
     };
 

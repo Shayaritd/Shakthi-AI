@@ -136,7 +136,7 @@ export interface MentorshipRequest {
   mode: MentorshipMode;
   message?: string;
   guardian_approved: boolean;
-  guardian_approved_at?: string;
+  guardian_approval_date?: string;
   start_date?: string;
   end_date?: string;
   rejection_reason?: string;

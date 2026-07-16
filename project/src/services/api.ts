@@ -95,6 +95,28 @@ function setLocal<T>(key: string, data: T[]): void {
   }
 }
 
+export function normalizeMentorProfile(m: any): MentorProfile {
+  if (!m) return m;
+  return {
+    ...m,
+    expertise: Array.isArray(m.expertise)
+      ? m.expertise
+      : typeof m.expertise === 'string'
+      ? m.expertise.split(',').map((e: string) => e.trim()).filter(Boolean)
+      : [],
+    languages: Array.isArray(m.languages)
+      ? m.languages
+      : typeof m.languages === 'string'
+      ? m.languages.split(',').map((l: string) => l.trim()).filter(Boolean)
+      : [],
+    availability: Array.isArray(m.availability)
+      ? m.availability
+      : typeof m.availability === 'string'
+      ? m.availability.split(',').map((a: string) => a.trim()).filter(Boolean)
+      : [],
+  };
+}
+
 
 // Live Search Types
 export interface LiveScholarship {
@@ -296,7 +318,7 @@ export async function getMentorProfile(userId: string): Promise<MentorProfile | 
     .maybeSingle();
 
   if (error) throw error;
-  return data as MentorProfile | null;
+  return data ? normalizeMentorProfile(data) : null;
 }
 
 export async function getMentoredAthletes(mentorId: string): Promise<any[]> {
@@ -390,6 +412,14 @@ export async function updateMentorProfile(
     ...sanitizedUpdates,
   };
 
+  // Convert arrays to comma-separated strings for columns defined as VARCHAR in the DB
+  if (Array.isArray(mergedProfile.expertise)) {
+    mergedProfile.expertise = mergedProfile.expertise.join(', ');
+  }
+  if (Array.isArray(mergedProfile.availability)) {
+    mergedProfile.availability = mergedProfile.availability.join(', ');
+  }
+
   const { data, error } = await supabase
     .from('mentor_profiles')
     .upsert(mergedProfile, { onConflict: 'user_id' })
@@ -397,7 +427,7 @@ export async function updateMentorProfile(
     .single();
 
   if (error) throw error;
-  return data as MentorProfile;
+  return normalizeMentorProfile(data);
 }
 
 export async function getMentors(filters?: {
@@ -424,7 +454,7 @@ export async function getMentors(filters?: {
     if (filters?.minExperience) {
       query = query.gte('experience_years', filters.minExperience);
     }
-    if (filters?.state) {
+    if (filters?.state && filters.state !== 'all') {
       query = query.eq('state', filters.state);
     }
 
@@ -436,12 +466,15 @@ export async function getMentors(filters?: {
     mentors = fallbackMentors;
   }
 
-  if (filters?.sport) {
+  // Normalize expertise and languages to always be arrays of strings
+  mentors = mentors.map(normalizeMentorProfile) as any;
+
+  if (filters?.sport && filters.sport !== 'all') {
     mentors = mentors.filter((m) =>
       m.expertise.some((e) => e.toLowerCase().includes(filters.sport!.toLowerCase()))
     );
   }
-  if (filters?.language) {
+  if (filters?.language && filters.language !== 'all') {
     mentors = mentors.filter((m) =>
       m.languages.some((l) => l.toLowerCase() === filters.language!.toLowerCase())
     );
@@ -463,13 +496,13 @@ export async function getMentorById(mentorId: string): Promise<MentorProfile | n
       .maybeSingle();
 
     if (error) throw error;
-    if (data) return data as MentorProfile;
+    if (data) return normalizeMentorProfile(data);
   } catch (err) {
     console.warn("getMentorById DB call failed, using fallback:", err);
   }
 
   const found = fallbackMentors.find(m => m.user_id === mentorId);
-  return found || null;
+  return found ? normalizeMentorProfile(found) : null;
 }
 
 // Scholarship APIs
@@ -489,7 +522,7 @@ export async function getScholarships(filters?: {
     if (filters?.hostelSupport) {
       query = query.eq('hostel_support', true);
     }
-    if (filters?.state) {
+    if (filters?.state && filters.state !== 'all') {
       query = query.or(`state.is.null,state.eq.${filters.state}`);
     }
 
@@ -619,7 +652,7 @@ export async function createMentorshipRequest(request: {
   try {
     const { data: athleteProfile } = await supabase
       .from('athlete_profiles')
-      .select('date_of_birth, guardian_user_id')
+      .select('date_of_birth, guardian_user_id, guardian_email')
       .eq('user_id', request.athleteId)
       .maybeSingle();
 
@@ -627,6 +660,23 @@ export async function createMentorshipRequest(request: {
       isUnder18 = needsGuardianApproval(athleteProfile.date_of_birth);
       if (isUnder18) {
         guardianId = athleteProfile.guardian_user_id;
+        if (!guardianId && athleteProfile.guardian_email) {
+          // Look up guardian user by email
+          const { data: guardianUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', athleteProfile.guardian_email)
+            .eq('role', 'GUARDIAN')
+            .maybeSingle();
+          if (guardianUser) {
+            guardianId = guardianUser.id;
+            // Update athlete profile to persist link
+            await supabase
+              .from('athlete_profiles')
+              .update({ guardian_user_id: guardianId })
+              .eq('user_id', request.athleteId);
+          }
+        }
       }
     }
   } catch (err) {
@@ -645,7 +695,7 @@ export async function createMentorshipRequest(request: {
     message: request.message || undefined,
     status: initialStatus as any,
     guardian_approved: false,
-    guardian_approved_at: undefined,
+    guardian_approval_date: undefined,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -712,6 +762,33 @@ export async function createMentorshipRequest(request: {
   }
 }
 
+export async function getMentorshipRequest(
+  athleteId: string,
+  mentorId: string
+): Promise<MentorshipRequest | null> {
+  try {
+    const { data, error } = await supabase
+      .from('mentorship_requests')
+      .select('*')
+      .eq('athlete_id', athleteId)
+      .eq('mentor_id', mentorId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.warn('Error fetching mentorship request from DB:', err);
+    // Fallback to local storage
+    const localReqs = getLocal<MentorshipRequest>(LOCAL_STORAGE_KEYS.REQUESTS);
+    const match = localReqs
+      .filter((r) => r.athlete_id === athleteId && r.mentor_id === mentorId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    return match || null;
+  }
+}
+
 export async function getMentorshipRequests(
   userId: string,
   role: 'athlete' | 'mentor' | 'guardian'
@@ -726,7 +803,7 @@ export async function getMentorshipRequests(
           id, 
           full_name, 
           role,
-          athlete_profiles(sport, level, date_of_birth, guardian_name)
+          athlete_profiles(sport, level, date_of_birth, guardian_name, guardian_user_id)
         ),
         mentor:profiles!mentor_id(id, full_name, role)
       `
@@ -738,7 +815,7 @@ export async function getMentorshipRequests(
     } else if (role === 'mentor') {
       query = query.eq('mentor_id', userId).neq('status', 'PENDING_GUARDIAN');
     } else if (role === 'guardian') {
-      query = query.eq('guardian_id', userId);
+      // Let RLS restrict to requests the guardian is linked to, and filter in JS below.
     }
 
     const { data, error } = await query;
@@ -754,6 +831,13 @@ export async function getMentorshipRequests(
         }
       };
     }) as MentorshipRequest[];
+
+    if (role === 'guardian') {
+      dbReqs = dbReqs.filter(r => 
+        r.guardian_id === userId || 
+        r.athlete?.athlete_profile?.guardian_user_id === userId
+      );
+    }
 
     // Clean up local storage from corresponding requests that already exist in DB
     if (data && data.length > 0) {
@@ -813,7 +897,7 @@ export async function updateMentorshipRequest(
   const finalUpdates = { ...updates };
   if (updates.guardian_approved === true) {
     finalUpdates.status = 'PENDING';
-    finalUpdates.guardian_approved_at = new Date().toISOString() as any;
+    finalUpdates.guardian_approval_date = new Date().toISOString() as any;
   }
 
   // Pre-fetch current request details to get names and user IDs for notifications
@@ -936,7 +1020,7 @@ export async function updateMentorshipRequest(
         status: 'PENDING',
         mode: 'ONLINE',
         guardian_approved: false,
-        guardian_approved_at: null,
+        guardian_approval_date: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         ...finalUpdates
@@ -1052,7 +1136,7 @@ export async function getColleges(filters?: {
     if (filters?.hostel) {
       query = query.eq('hostel', true);
     }
-    if (filters?.state) {
+    if (filters?.state && filters.state !== 'all') {
       query = query.eq('state', filters.state);
     }
 
@@ -1067,7 +1151,15 @@ export async function getColleges(filters?: {
     colleges = initialColleges as any;
   }
 
-  if (filters?.sport) {
+  // Normalize supported_sports to always be an array of strings
+  colleges = colleges.map((c) => ({
+    ...c,
+    supported_sports: Array.isArray(c.supported_sports)
+      ? c.supported_sports
+      : (c.supported_sports as any)?.sports || [],
+  })) as any;
+
+  if (filters?.sport && filters.sport !== 'all') {
     colleges = colleges.filter((c) =>
       c.supported_sports.some((s) =>
         s.toLowerCase().includes(filters.sport!.toLowerCase())
@@ -1106,13 +1198,13 @@ export async function getOpportunities(filters?: {
   try {
     let query = supabase.from('opportunities').select('*');
 
-    if (filters?.type) {
+    if (filters?.type && filters.type !== 'all') {
       query = query.eq('type', filters.type);
     }
     if (filters?.womenFocused) {
       query = query.eq('women_focused', true);
     }
-    if (filters?.state) {
+    if (filters?.state && filters.state !== 'all') {
       query = query.eq('state', filters.state);
     }
 
@@ -1127,7 +1219,7 @@ export async function getOpportunities(filters?: {
     opportunities = initialOpportunities as any;
   }
 
-  if (filters?.sport) {
+  if (filters?.sport && filters.sport !== 'all') {
     opportunities = opportunities.filter(
       (o) =>
         !o.sport || o.sport.toLowerCase().includes(filters.sport!.toLowerCase())
@@ -1167,13 +1259,13 @@ export async function getTrainingResources(filters?: {
       .select('*')
       .eq('is_published', true);
 
-    if (filters?.category) {
+    if (filters?.category && filters.category !== 'all') {
       query = query.eq('category', filters.category);
     }
-    if (filters?.contentType) {
+    if (filters?.contentType && filters.contentType !== 'all') {
       query = query.eq('content_type', filters.contentType);
     }
-    if (filters?.sport) {
+    if (filters?.sport && filters.sport !== 'all') {
       query = query.or(`sport.is.null,sport.eq.${filters.sport}`);
     }
 

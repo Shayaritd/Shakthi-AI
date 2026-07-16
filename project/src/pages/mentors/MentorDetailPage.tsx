@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getMentorById, getMentorReviews } from '@/services/api';
+import { getMentorById, getMentorReviews, getMentorshipRequest } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,11 +21,13 @@ import {
   Globe,
   CheckCircle,
   ChevronLeft,
+  Loader2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function MentorDetailPage() {
   const { id } = useParams();
+  const { user, profile } = useAuth();
 
   const { data: mentor, isLoading } = useQuery({
     queryKey: ['mentor', id],
@@ -36,6 +39,12 @@ export default function MentorDetailPage() {
     queryKey: ['mentorReviews', id],
     queryFn: () => getMentorReviews(id!),
     enabled: !!id,
+  });
+
+  const { data: existingRequest, isLoading: requestLoading } = useQuery({
+    queryKey: ['mentorshipRequest', user?.id, id],
+    queryFn: () => user ? getMentorshipRequest(user.id, id!) : Promise.resolve(null),
+    enabled: !!user && !!id,
   });
 
   if (isLoading) {
@@ -160,12 +169,52 @@ export default function MentorDetailPage() {
             </div>
 
             <div className="md:text-right">
-              <Button className="bg-teal-600 hover:bg-teal-700 w-full md:w-auto" asChild>
-                <Link to={`/mentors/${id}/request`}>
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Request Mentorship
-                </Link>
-              </Button>
+              {profile?.role === 'ATHLETE' ? (
+                requestLoading ? (
+                  <Button disabled className="w-full md:w-auto">
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Checking Request...
+                  </Button>
+                ) : existingRequest ? (
+                  existingRequest.status === 'PENDING_GUARDIAN' ? (
+                    <Button disabled className="bg-amber-100 text-amber-800 border border-amber-300 w-full md:w-auto cursor-not-allowed">
+                      <Clock className="w-4 h-4 mr-2 text-amber-600" />
+                      ⏳ Awaiting Guardian Approval
+                    </Button>
+                  ) : existingRequest.status === 'PENDING' ? (
+                    <Button disabled className="bg-blue-100 text-blue-800 border border-blue-300 w-full md:w-auto cursor-not-allowed">
+                      <Clock className="w-4 h-4 mr-2 text-blue-600" />
+                      ⏳ Awaiting Mentor Approval
+                    </Button>
+                  ) : existingRequest.status === 'APPROVED' ? (
+                    <Button className="bg-emerald-600 hover:bg-emerald-700 w-full md:w-auto" asChild>
+                      <Link to="/chat">
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        ✅ Active Mentorship - Chat Now
+                      </Link>
+                    </Button>
+                  ) : existingRequest.status === 'REJECTED' ? (
+                    <Button disabled className="bg-rose-100 text-rose-800 border border-rose-300 w-full md:w-auto cursor-not-allowed">
+                      <Clock className="w-4 h-4 mr-2 text-rose-600" />
+                      ❌ Request Declined
+                    </Button>
+                  ) : (
+                    <Button className="bg-teal-600 hover:bg-teal-700 w-full md:w-auto" asChild>
+                      <Link to={`/mentors/${id}/request`}>
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Request Mentorship
+                      </Link>
+                    </Button>
+                  )
+                ) : (
+                  <Button className="bg-teal-600 hover:bg-teal-700 w-full md:w-auto" asChild>
+                    <Link to={`/mentors/${id}/request`}>
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Request Mentorship
+                    </Link>
+                  </Button>
+                )
+              ) : null}
             </div>
           </div>
         </CardContent>

@@ -284,7 +284,7 @@ export type Database = {
           mode: string;
           message: string | null;
           guardian_approved: boolean;
-          guardian_approved_at: string | null;
+          guardian_approval_date: string | null;
           start_date: string | null;
           end_date: string | null;
           rejection_reason: string | null;
@@ -301,7 +301,7 @@ export type Database = {
           mode?: string;
           message?: string | null;
           guardian_approved?: boolean;
-          guardian_approved_at?: string | null;
+          guardian_approval_date?: string | null;
           start_date?: string | null;
           end_date?: string | null;
           rejection_reason?: string | null;
@@ -316,7 +316,7 @@ export type Database = {
           mode?: string;
           message?: string | null;
           guardian_approved?: boolean;
-          guardian_approved_at?: string | null;
+          guardian_approval_date?: string | null;
           start_date?: string | null;
           end_date?: string | null;
           rejection_reason?: string | null;

@@ -131,6 +131,28 @@ export default function AthleteDashboard() {
     athleteSport && o.sport?.toLowerCase().includes(athleteSport.toLowerCase())
   ).slice(0, 2) || [];
 
+  const calculateFitScore = () => {
+    if (!athleteProfile || !athleteProfile.sport) return "N/A";
+    let score = 65; // Base score
+    
+    // Add based on competition level
+    const level = athleteProfile.level;
+    if (level === 'DISTRICT') score += 10;
+    else if (level === 'STATE') score += 20;
+    else if (level === 'NATIONAL' || level === 'INTERNATIONAL') score += 30;
+    else score += 5; // School/Other
+    
+    // Add based on achievements count
+    const achCount = athleteProfile.achievements ? (athleteProfile.achievements as any[]).length : 0;
+    score += Math.min(achCount * 5, 15);
+    
+    // Add based on profile completion
+    const comp = athleteProfile.profile_completion || 0;
+    score += Math.min(Math.floor(comp / 10), 10);
+    
+    return `${Math.min(score, 98)}%`;
+  };
+
   const handleQuery = async (textToQuery?: string, typeOverride?: string) => {
     const q = textToQuery || queryText;
     const targetType = typeOverride || assistantType;
@@ -255,7 +277,7 @@ export default function AthleteDashboard() {
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-extrabold text-gray-900">
-                {athleteSport ? "92%" : "N/A"}
+                {calculateFitScore()}
               </span>
               {athleteSport && (
                 <span className="text-xs text-green-600 font-semibold">Match Fit</span>
@@ -354,14 +376,14 @@ export default function AthleteDashboard() {
                           {opp.type}
                         </Badge>
                         <Badge className="bg-purple-50 text-purple-700 text-xs border border-purple-100">
-                          95% Match Fit
+                          {calculateFitScore() !== "N/A" ? `${parseInt(calculateFitScore()) - 3 + (opp.title.length % 5)}%` : "90%"} Match Fit
                         </Badge>
                       </div>
                       <h4 className="font-bold text-gray-900 text-sm">{opp.title}</h4>
                       <p className="text-xs text-gray-500">{opp.organization} • {opp.location}</p>
                     </div>
                     <Button size="sm" variant="outline" asChild>
-                      <Link to="/opportunities">View Trials</Link>
+                      <Link to={`/opportunities/${opp.id}`}>View Trials</Link>
                     </Button>
                   </div>
                 ))

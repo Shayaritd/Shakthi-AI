@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { getMentorById, createMentorshipRequest } from '@/services/api';
+import { getMentorById, createMentorshipRequest, getMentorshipRequest } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +41,12 @@ export default function RequestMentorshipPage() {
     queryKey: ['mentor', id],
     queryFn: () => getMentorById(id!),
     enabled: !!id,
+  });
+
+  const { data: existingRequest, isLoading: requestLoading } = useQuery({
+    queryKey: ['mentorshipRequest', user?.id, id],
+    queryFn: () => user ? getMentorshipRequest(user.id, id!) : Promise.resolve(null),
+    enabled: !!user && !!id,
   });
 
   const mutation = useMutation({
@@ -92,10 +98,67 @@ export default function RequestMentorshipPage() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || requestLoading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-64 rounded-xl" />
+      </div>
+    );
+  }
+
+  if (existingRequest) {
+    return (
+      <div className="space-y-6 max-w-lg mx-auto">
+        <Button variant="ghost" asChild>
+          <Link to={`/mentors/${id}`}>
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Back to Mentor Profile
+          </Link>
+        </Button>
+
+        <Card>
+          <CardContent className="p-8 text-center space-y-6">
+            <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center mx-auto">
+              {existingRequest.status === 'APPROVED' ? (
+                <CheckCircle className="w-8 h-8 text-emerald-600" />
+              ) : existingRequest.status === 'REJECTED' ? (
+                <AlertCircle className="w-8 h-8 text-rose-600" />
+              ) : (
+                <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-gray-900">
+                {existingRequest.status === 'APPROVED' && 'Active Mentorship'}
+                {existingRequest.status === 'REJECTED' && 'Request Declined'}
+                {existingRequest.status === 'PENDING' && 'Awaiting Mentor Approval'}
+                {existingRequest.status === 'PENDING_GUARDIAN' && 'Awaiting Guardian Approval'}
+              </h2>
+              <p className="text-gray-600 text-sm max-w-sm mx-auto">
+                {existingRequest.status === 'APPROVED' &&
+                  `You have an active mentorship with ${mentor?.profile?.full_name}. You can message them in chat.`}
+                {existingRequest.status === 'REJECTED' &&
+                  `Your mentorship request to ${mentor?.profile?.full_name} was declined.`}
+                {existingRequest.status === 'PENDING' &&
+                  `Your mentorship request has been sent to ${mentor?.profile?.full_name}. You will be notified when they respond.`}
+                {existingRequest.status === 'PENDING_GUARDIAN' &&
+                  `Your request is awaiting parent/guardian approval. Once approved, it will be forwarded to ${mentor?.profile?.full_name}.`}
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+              {existingRequest.status === 'APPROVED' ? (
+                <Button className="bg-emerald-600 hover:bg-emerald-700" asChild>
+                  <Link to="/chat">Open Chat</Link>
+                </Button>
+              ) : null}
+              <Button variant="outline" asChild>
+                <Link to={`/mentors/${id}`}>View Profile</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

@@ -159,7 +159,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const result = await signUp(email, password, fullName, selectedRole!, phone);
+      const result = await signUp(email.trim(), password, fullName.trim(), selectedRole!, phone);
       if (result.error) {
         setError(result.error.message);
       } else {

@@ -89,6 +89,21 @@ export default function AthleteProfilePage() {
       }
     }
   }, [editing, formData, user?.id]);
+
+  // Before unload handler to warn if unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (editing) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved profile changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [editing]);
   
   // State for achievements dialog/inline form
   const [showAddAchievement, setShowAddAchievement] = useState(false);
@@ -520,7 +535,15 @@ export default function AthleteProfilePage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="about" className="space-y-6">
+      <Tabs 
+        defaultValue="about" 
+        className="space-y-6"
+        onValueChange={() => {
+          if (editing) {
+            handleSave();
+          }
+        }}
+      >
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="about">About</TabsTrigger>
           <TabsTrigger value="achievements">Achievements</TabsTrigger>

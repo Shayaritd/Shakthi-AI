@@ -176,9 +176,9 @@ export default function TrainingCenterPage() {
                         <Clock className="w-3.5 h-3.5 text-gray-400" />
                         {res.duration_minutes ? `${res.duration_minutes} min` : '20 min'}
                       </span>
-                      <Button size="sm" variant="outline" className="text-rose-600 hover:text-rose-700 h-8">
+                      <span className="inline-flex items-center justify-center rounded-md text-xs font-semibold border border-rose-200 text-rose-600 bg-background hover:bg-rose-50 px-3 py-1.5 h-8">
                         {res.video_url ? 'Watch Video' : 'Read Guide'}
-                      </Button>
+                      </span>
                     </div>
                   </CardContent>
                 </Card>

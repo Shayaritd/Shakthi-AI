@@ -79,7 +79,7 @@ export default function LoginPage() {
     console.log("--- Starting Login Performance Measurement ---");
 
     try {
-      const result = await signIn(email, password);
+      const result = await signIn(email.trim(), password);
       const authTime = performance.now();
       console.log(`[Performance] Supabase Auth + Profile Fetch took: ${(authTime - startTime).toFixed(2)}ms`);
 
