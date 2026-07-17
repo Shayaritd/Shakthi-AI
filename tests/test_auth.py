@@ -32,6 +32,26 @@ async def test_signup(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_signup_without_phone(client: AsyncClient):
+    """Test user registration without phone number"""
+    response = await client.post(
+        "/api/v1/auth/signup",
+        json={
+            "full_name": "Test User No Phone",
+            "email": "test_nophone@example.com",
+            "password": "TestPass@123",
+            "role": "ATHLETE"
+        }
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["success"] is True
+    assert data["data"]["email"] == "test_nophone@example.com"
+    assert data["data"]["phone_number"] is None
+
+
+@pytest.mark.asyncio
 async def test_login(client: AsyncClient, test_user: User):
     """Test user login"""
     response = await client.post(

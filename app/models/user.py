@@ -36,7 +36,7 @@ class User(Base):
     )
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    phone_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
+    phone_number: Mapped[Optional[str]] = mapped_column(String(20), unique=True, nullable=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.ATHLETE)
     verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

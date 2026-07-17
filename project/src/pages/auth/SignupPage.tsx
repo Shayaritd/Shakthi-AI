@@ -301,6 +301,7 @@ export default function SignupPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10 pr-10"
+                      autoComplete="new-password"
                       required
                     />
                     <button
@@ -324,6 +325,7 @@ export default function SignupPage() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="pl-10"
+                      autoComplete="new-password"
                       required
                     />
                   </div>

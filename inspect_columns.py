@@ -7,7 +7,7 @@ async def inspect():
         res = await conn.execute(text("""
             SELECT column_name, data_type 
             FROM information_schema.columns 
-            WHERE table_name = 'athlete_profiles'
+            WHERE table_name = 'mentor_profiles'
         """))
         print("Columns in athlete_profiles:")
         for row in res:

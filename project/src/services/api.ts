@@ -803,7 +803,7 @@ export async function getMentorshipRequests(
           id, 
           full_name, 
           role,
-          athlete_profiles(sport, level, date_of_birth, guardian_name, guardian_user_id)
+          athlete_profiles!fk_athlete_profiles_user_id_profiles(sport, level, date_of_birth, guardian_name, guardian_user_id)
         ),
         mentor:profiles!mentor_id(id, full_name, role)
       `

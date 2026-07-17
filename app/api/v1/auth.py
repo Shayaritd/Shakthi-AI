@@ -56,14 +56,15 @@ async def signup(
         )
 
     # Check if phone number already exists
-    result = await db.execute(
-        select(User).where(User.phone_number == user_data.phone_number)
-    )
-    if result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Phone number already registered"
+    if user_data.phone_number:
+        result = await db.execute(
+            select(User).where(User.phone_number == user_data.phone_number)
         )
+        if result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Phone number already registered"
+            )
 
     # Create user
     user = User(

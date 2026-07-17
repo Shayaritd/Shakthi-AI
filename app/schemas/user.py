@@ -1,4 +1,4 @@
-﻿"""
+"""
 User Schemas
 Request/response schemas for user endpoints
 """
@@ -15,7 +15,7 @@ class UserBase(BaseModel):
     """Base user schema"""
     full_name: str = Field(..., min_length=2, max_length=255)
     email: EmailStr
-    phone_number: str = Field(..., min_length=10, max_length=20)
+    phone_number: Optional[str] = Field(default=None, min_length=10, max_length=20)
 
 
 class UserCreate(UserBase):
@@ -48,7 +48,7 @@ class UserResponse(BaseModel):
     id: Union[str, UUID]
     full_name: str
     email: str
-    phone_number: str
+    phone_number: Optional[str] = None
     role: UserRole
     verified: bool
     is_active: bool

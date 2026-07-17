@@ -159,6 +159,36 @@ async def request_mentorship(
             detail="Active mentorship request already exists"
         )
 
+    # Fetch athlete profile to check age and guardian mapping
+    from app.models.athlete import AthleteProfile
+    from datetime import date
+
+    result = await db.execute(
+        select(AthleteProfile).where(AthleteProfile.user_id == current_user.id)
+    )
+    athlete_profile = result.scalar_one_or_none()
+
+    is_under_18 = False
+    guardian_id = None
+    if athlete_profile and athlete_profile.date_of_birth:
+        today = date.today()
+        dob = athlete_profile.date_of_birth
+        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        if age < 18:
+            is_under_18 = True
+            guardian_id = athlete_profile.guardian_user_id
+            if not guardian_id and athlete_profile.guardian_email:
+                # Look up guardian user by email
+                res = await db.execute(
+                    select(User).where(User.email == athlete_profile.guardian_email, User.role == UserRole.GUARDIAN)
+                )
+                guardian_user = res.scalar_one_or_none()
+                if guardian_user:
+                    guardian_id = guardian_user.id
+                    athlete_profile.guardian_user_id = guardian_id
+
+    initial_status = RequestStatus.PENDING_GUARDIAN if is_under_18 else RequestStatus.PENDING
+
     # Create request
     mentorship_request = MentorshipRequest(
         athlete_id=current_user.id,
@@ -166,7 +196,8 @@ async def request_mentorship(
         goal=request_data.goal,
         mode=MentorshipMode(request_data.mode) if request_data.mode else MentorshipMode.ONLINE,
         message=request_data.message,
-        status=RequestStatus.PENDING
+        guardian_id=guardian_id,
+        status=initial_status
     )
 
     db.add(mentorship_request)
