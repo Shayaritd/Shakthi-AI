@@ -1,9 +1,22 @@
-import { useQuery } from '@tanstack/react-query';
-import { getSuccessStories } from '@/services/api';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getSuccessStories, createSuccessStory } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 import {
   Trophy,
   Quote,
@@ -11,10 +24,19 @@ import {
   Award,
   ChevronRight,
   BookOpen,
+  Loader2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function SuccessStoriesPage() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [achievement, setAchievement] = useState('');
+  const [storyText, setStoryText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const { data: stories, isLoading } = useQuery({
     queryKey: ['successStories'],
     queryFn: () => getSuccessStories(),
@@ -23,6 +45,36 @@ export default function SuccessStoriesPage() {
   const featuredStory = stories?.find(s => s.featured);
   const remainingStories = stories?.filter(s => s.id !== featuredStory?.id) || [];
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    if (!title.trim() || !storyText.trim()) {
+      toast.error('Title and Story are required.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await createSuccessStory({
+        athleteId: user.id,
+        title: title.trim(),
+        story: storyText.trim(),
+        achievement: achievement.trim() || undefined,
+      });
+      toast.success('Your success story has been submitted! It will appear on the feed once approved.');
+      setIsDialogOpen(false);
+      setTitle('');
+      setAchievement('');
+      setStoryText('');
+      queryClient.invalidateQueries({ queryKey: ['successStories'] });
+    } catch (error) {
+      toast.error('Failed to submit success story. Please try again.');
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -30,10 +82,25 @@ export default function SuccessStoriesPage() {
           <h1 className="text-2xl font-bold text-gray-900">Success Stories</h1>
           <p className="text-gray-500">Inspiring journeys of women athletes overcoming challenges across India</p>
         </div>
-        <Badge className="bg-amber-100 text-amber-700 self-start">
-          <Trophy className="w-3.5 h-3.5 mr-1" />
-          Champion Spotlights
-        </Badge>
+        <div className="flex flex-wrap items-center gap-3 self-start md:self-auto">
+          {user ? (
+            <Button 
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+              onClick={() => setIsDialogOpen(true)}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Share Your Story
+            </Button>
+          ) : (
+            <Button variant="outline" asChild>
+              <Link to="/login">Sign in to Share Story</Link>
+            </Button>
+          )}
+          <Badge className="bg-amber-100 text-amber-700">
+            <Trophy className="w-3.5 h-3.5 mr-1" />
+            Champion Spotlights
+          </Badge>
+        </div>
       </div>
 
       {isLoading ? (
@@ -135,11 +202,22 @@ export default function SuccessStoriesPage() {
               </p>
             </div>
             <div className="flex gap-3 mt-4">
-              <Button variant="default" className="bg-amber-600 hover:bg-amber-700" asChild>
-                <Link to="/help">
+              {user ? (
+                <Button 
+                  variant="default" 
+                  className="bg-amber-600 hover:bg-amber-700"
+                  onClick={() => setIsDialogOpen(true)}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
                   Submit Your Journey
-                </Link>
-              </Button>
+                </Button>
+              ) : (
+                <Button variant="default" className="bg-amber-600 hover:bg-amber-700" asChild>
+                  <Link to="/login">
+                    Submit Your Journey
+                  </Link>
+                </Button>
+              )}
               <Button variant="outline" asChild>
                 <Link to="/help">
                   Read Community Guidelines
@@ -148,6 +226,67 @@ export default function SuccessStoriesPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Share Story Dialog */}
+      {user && (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[525px]">
+            <DialogHeader>
+              <DialogTitle>Share Your Success Story</DialogTitle>
+              <DialogDescription>
+                Inspire others in the SHAKTHI community by sharing your achievements and athletic journey.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Story Title</Label>
+                <Input
+                  id="title"
+                  placeholder="e.g., Overcoming hurdles to win State Gold"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="achievement">Achievement (Optional)</Label>
+                <Input
+                  id="achievement"
+                  placeholder="e.g., Gold Medalist, Under-19 Athletics"
+                  value={achievement}
+                  onChange={(e) => setAchievement(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="story">Your Story</Label>
+                <Textarea
+                  id="story"
+                  placeholder="Tell your story. What challenges did you face? How did you overcome them? Who helped you along the way?"
+                  className="min-h-[150px]"
+                  value={storyText}
+                  onChange={(e) => setStoryText(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-teal-600 hover:bg-teal-700" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                      Publishing...
+                    </>
+                  ) : (
+                    'Publish Story'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
